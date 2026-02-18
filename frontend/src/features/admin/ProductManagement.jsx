@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Table, Badge, Modal } from 'react-bootstrap';
 import API from '../../services/axios';
+import { TableRowSkeleton } from '../../components/Skeleton';
+import { toast } from 'react-toastify';
 
 const ProductManagement = () => {
     const [products, setProducts] = useState([]);
     const [lowStock, setLowStock] = useState([]);
-    const [form, setForm] = useState({ name: '', price: '', stock: '' });
-    const [editForm, setEditForm] = useState({ name: '', price: '', stock: '' });
+    const [loading, setLoading] = useState(true);
+    const [form, setForm] = useState({ name: '', price: '', mrp: '', discount: '', productTag: '', stock: '', category: '', image: null });
+    const [editForm, setEditForm] = useState({ name: '', price: '', mrp: '', discount: '', productTag: '', stock: '', category: '', image: null });
     const [showModal, setShowModal] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
 
@@ -20,19 +23,51 @@ const ProductManagement = () => {
         setLowStock(res.data);
     };
 
+    const loadAll = async () => {
+        setLoading(true);
+        try {
+            await Promise.all([loadProducts(), loadLowStock()]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        loadProducts();
-        loadLowStock();
+        loadAll();
     }, []);
 
     const addProduct = async (e) => {
         e.preventDefault();
+
+        // Validation
+        if (parseFloat(form.discount) < 0 || parseFloat(form.discount) > 100) {
+            toast.error('Discount must be between 0 and 100');
+            return;
+        }
+        if (parseFloat(form.mrp) < parseFloat(form.price)) {
+            toast.error('MRP should be greater than or equal to selling price');
+            return;
+        }
+
         try {
-            await API.post('/products', form);
-            setForm({ name: '', price: '', stock: '' });
-            loadProducts();
-            loadLowStock();
+            const formData = new FormData();
+            formData.append('name', form.name);
+            formData.append('price', form.price);
+            formData.append('mrp', form.mrp);
+            formData.append('discount', form.discount);
+            formData.append('productTag', form.productTag);
+            formData.append('stock', form.stock);
+            formData.append('category', form.category);
+            if (form.image) formData.append('image', form.image);
+
+            await API.post('/products', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Product added successfully!');
+            setForm({ name: '', price: '', mrp: '', discount: '', productTag: '', stock: '', category: '', image: null });
+            loadAll();
         } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to add product');
             console.log(error);
         }
     };
@@ -42,27 +77,60 @@ const ProductManagement = () => {
         setEditForm({
             name: product.name,
             price: product.price,
+            mrp: product.mrp || '',
+            discount: product.discount || '',
+            productTag: product.productTag || '',
             stock: product.stock,
+            category: product.category || '',
+            image: null, // File input will be separate
         });
         setShowModal(true);
     };
 
     const updateProduct = async () => {
+        // Validation
+        if (parseFloat(editForm.discount) < 0 || parseFloat(editForm.discount) > 100) {
+            toast.error('Discount must be between 0 and 100');
+            return;
+        }
+        if (parseFloat(editForm.mrp) < parseFloat(editForm.price)) {
+            toast.error('MRP should be greater than or equal to selling price');
+            return;
+        }
+
         try {
-            await API.put(`/products/${editingProduct._id}`, editForm);
+            const formData = new FormData();
+            formData.append('name', editForm.name);
+            formData.append('price', editForm.price);
+            formData.append('mrp', editForm.mrp);
+            formData.append('discount', editForm.discount);
+            formData.append('productTag', editForm.productTag);
+            formData.append('stock', editForm.stock);
+            formData.append('category', editForm.category);
+            if (editForm.image) formData.append('image', editForm.image);
+
+            await API.put(`/products/${editingProduct._id}`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            toast.success('Product updated successfully!');
             setShowModal(false);
             setEditingProduct(null);
-            loadProducts();
-            loadLowStock();
+            loadAll();
         } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update product');
             console.log(error);
         }
     };
 
     const deleteProduct = async (id) => {
-        await API.delete(`/products/${id}`);
-        loadProducts();
-        loadLowStock();
+        try {
+            await API.delete(`/products/${id}`);
+            toast.success('Product deleted successfully!');
+            loadAll();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete product');
+            console.log(error);
+        }
     };
 
     const styles = {
@@ -335,6 +403,29 @@ const ProductManagement = () => {
                             required
                         />
                         <Form.Control
+                            placeholder="Category"
+                            value={form.category}
+                            style={styles.formControl}
+                            onChange={(e) => setForm({ ...form, category: e.target.value })}
+                            required
+                        />
+                        <Form.Control
+                            placeholder="MRP (₹)"
+                            type="number"
+                            value={form.mrp}
+                            style={styles.formControl}
+                            onChange={(e) => setForm({ ...form, mrp: e.target.value })}
+                        />
+                        <Form.Control
+                            placeholder="Discount (%)"
+                            type="number"
+                            value={form.discount}
+                            style={styles.formControl}
+                            onChange={(e) => setForm({ ...form, discount: e.target.value })}
+                        />
+                    </div>
+                    <div style={styles.formRow}>
+                        <Form.Control
                             placeholder="Price (₹)"
                             type="number"
                             value={form.price}
@@ -350,6 +441,20 @@ const ProductManagement = () => {
                             onChange={(e) => setForm({ ...form, stock: e.target.value })}
                             required
                         />
+                        <Form.Control
+                            placeholder="Product Tag"
+                            value={form.productTag}
+                            style={styles.formControl}
+                            onChange={(e) => setForm({ ...form, productTag: e.target.value })}
+                        />
+                    </div>
+                    <div style={{ marginBottom: '12px' }}>
+                        <Form.Control
+                            type="file"
+                            accept="image/*"
+                            style={styles.formControl}
+                            onChange={(e) => setForm({ ...form, image: e.target.files[0] })}
+                        />
                     </div>
                     <Button style={styles.addButton} type="submit">
                         + Add Product
@@ -364,53 +469,65 @@ const ProductManagement = () => {
                     <thead>
                         <tr>
                             <th style={styles.tableHeader}>Product Name</th>
+                            <th style={styles.tableHeader}>Category</th>
+                            <th style={styles.tableHeader}>MRP</th>
                             <th style={styles.tableHeader}>Price</th>
+                            <th style={styles.tableHeader}>Discount</th>
+                            <th style={styles.tableHeader}>Tag</th>
                             <th style={styles.tableHeader}>Stock</th>
                             <th style={styles.tableHeader}>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {products.map(p => (
-                            <tr key={p._id}>
-                                <td style={styles.tableCell}>{p.name}</td>
-                                <td style={{...styles.tableCell, ...styles.priceCell}}>
-                                    ₹{Number(p.price).toLocaleString()}
-                                </td>
-                                <td style={styles.tableCell}>
-                                    {p.stock <= 5 ? (
-                                        <span style={{...styles.stockBadge, ...styles.dangerBadge}}>
-                                            {p.stock}
-                                        </span>
-                                    ) : (
-                                        <span style={styles.normalStock}>{p.stock}</span>
-                                    )}
-                                </td>
-                                <td style={styles.tableCell}>
-                                    <div style={styles.buttonGroup}>
-                                        <button 
-                                            style={styles.editButton}
-                                            onClick={() => handleEditClick(p)}
-                                            onMouseOver={(e) => e.currentTarget.style.opacity = '0.85'}
-                                            onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
-                                        >
-                                            Edit
-                                        </button>
-                                        <button 
-                                            style={styles.deleteButton}
-                                            onClick={() => deleteProduct(p._id)}
-                                            onMouseOver={(e) => e.currentTarget.style.opacity = '0.85'}
-                                            onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
-                                        >
-                                            Delete
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        ))}
+                        {loading
+                            ? Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)
+                            : products.map(p => (
+                                <tr key={p._id}>
+                                    <td style={styles.tableCell}>{p.name}</td>
+                                    <td style={styles.tableCell}>{p.category}</td>
+                                    <td style={{...styles.tableCell, ...styles.priceCell}}>
+                                        ₹{p.mrp ? Number(p.mrp).toLocaleString() : '-'}
+                                    </td>
+                                    <td style={{...styles.tableCell, ...styles.priceCell}}>
+                                        ₹{Number(p.price).toLocaleString()}
+                                    </td>
+                                    <td style={styles.tableCell}>{p.discount || 0}%</td>
+                                    <td style={styles.tableCell}>{p.productTag || '-'}</td>
+                                    <td style={styles.tableCell}>
+                                        {p.stock <= 5 ? (
+                                            <span style={{...styles.stockBadge, ...styles.dangerBadge}}>
+                                                {p.stock}
+                                            </span>
+                                        ) : (
+                                            <span style={styles.normalStock}>{p.stock}</span>
+                                        )}
+                                    </td>
+                                    <td style={styles.tableCell}>
+                                        <div style={styles.buttonGroup}>
+                                            <button 
+                                                style={styles.editButton}
+                                                onClick={() => handleEditClick(p)}
+                                                onMouseOver={(e) => e.currentTarget.style.opacity = '0.85'}
+                                                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button 
+                                                style={styles.deleteButton}
+                                                onClick={() => deleteProduct(p._id)}
+                                                onMouseOver={(e) => e.currentTarget.style.opacity = '0.85'}
+                                                onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
                     </tbody>
                 </Table>
                 
-                {products.length === 0 && (
+                {!loading && products.length === 0 && (
                     <div style={styles.emptyState}>
                         No products found. Add your first product above.
                     </div>
@@ -439,6 +556,15 @@ const ProductManagement = () => {
                             />
                         </Form.Group>
                         <Form.Group className="mb-2">
+                            <Form.Label style={styles.formLabel}>Category</Form.Label>
+                            <input
+                                type="text"
+                                value={editForm.category}
+                                style={styles.modalInput}
+                                onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-2">
                             <Form.Label style={styles.formLabel}>Price (₹)</Form.Label>
                             <input
                                 type="number"
@@ -447,13 +573,49 @@ const ProductManagement = () => {
                                 onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
                             />
                         </Form.Group>
-                        <Form.Group>
+                        <Form.Group className="mb-2">
+                            <Form.Label style={styles.formLabel}>MRP (₹)</Form.Label>
+                            <input
+                                type="number"
+                                value={editForm.mrp}
+                                style={styles.modalInput}
+                                onChange={(e) => setEditForm({ ...editForm, mrp: e.target.value })}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-2">
+                            <Form.Label style={styles.formLabel}>Discount (%)</Form.Label>
+                            <input
+                                type="number"
+                                value={editForm.discount}
+                                style={styles.modalInput}
+                                onChange={(e) => setEditForm({ ...editForm, discount: e.target.value })}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-2">
+                            <Form.Label style={styles.formLabel}>Product Tag</Form.Label>
+                            <input
+                                type="text"
+                                value={editForm.productTag}
+                                style={styles.modalInput}
+                                onChange={(e) => setEditForm({ ...editForm, productTag: e.target.value })}
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-2">
                             <Form.Label style={styles.formLabel}>Stock Quantity</Form.Label>
                             <input
                                 type="number"
                                 value={editForm.stock}
                                 style={styles.modalInput}
                                 onChange={(e) => setEditForm({ ...editForm, stock: e.target.value })}
+                            />
+                        </Form.Group>
+                        <Form.Group>
+                            <Form.Label style={styles.formLabel}>Image (optional)</Form.Label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                style={styles.modalInput}
+                                onChange={(e) => setEditForm({ ...editForm, image: e.target.files[0] })}
                             />
                         </Form.Group>
                     </Form>

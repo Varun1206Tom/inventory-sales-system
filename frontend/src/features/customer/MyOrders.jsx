@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Spinner, Badge, Button } from 'react-bootstrap';
-import { Package, Calendar, Truck, CheckCircle, Clock, XCircle, ChevronRight, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Package, Calendar, Truck, CheckCircle, Clock, XCircle, ChevronRight, ShoppingBag, ArrowLeft, RefreshCw } from 'lucide-react';
 import API from '../../services/axios';
 import AppNavbar from '../../components/AppNavbar';
+import { OrderCardSkeleton } from '../../components/Skeleton';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const MyOrders = () => {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -16,12 +19,15 @@ const MyOrders = () => {
 
     const fetchOrders = async () => {
         try {
-            setLoading(true);
+            setRefreshing(true);
             const res = await API.get('/orders');
             setOrders(res.data);
+            toast.success('Orders refreshed');
         } catch (err) {
             console.error('Failed to fetch orders:', err.response?.data || err.message);
+            toast.error('Failed to refresh orders');
         } finally {
+            setRefreshing(false);
             setLoading(false);
         }
     };
@@ -84,11 +90,14 @@ const MyOrders = () => {
         return (
             <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
                 <AppNavbar />
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-                    <div className="text-center">
-                        <Spinner animation="border" variant="primary" size="sm" />
-                        <p className="text-muted mt-2 mb-0" style={{ fontSize: '14px' }}>Loading your orders...</p>
+                <div style={{ maxWidth: '900px', margin: '20px auto', padding: '0 15px' }}>
+                    <div className="d-flex align-items-center gap-3 mb-4">
+                        <Button variant="link" style={{ color: '#666', padding: 0 }} disabled><ArrowLeft size={20} /></Button>
+                        <h5 className="mb-0">My Orders</h5>
                     </div>
+                    {[1, 2, 3, 4].map((i) => (
+                        <OrderCardSkeleton key={i} />
+                    ))}
                 </div>
             </div>
         );
@@ -123,15 +132,27 @@ const MyOrders = () => {
                             </p>
                         </div>
                     </div>
-                    <Button 
-                        variant="outline-primary" 
-                        size="sm"
-                        onClick={() => navigate('/customer/product-catalog')}
-                        style={{ fontSize: '13px' }}
-                    >
-                        <ShoppingBag size={14} className="me-1" />
-                        Shop More
-                    </Button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <Button 
+                            variant="outline-secondary" 
+                            size="sm"
+                            onClick={fetchOrders}
+                            disabled={refreshing}
+                            style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                        >
+                            <RefreshCw size={14} style={{ animation: refreshing ? 'spin 1s linear infinite' : 'none' }} />
+                            {refreshing ? 'Refreshing' : 'Refresh'}
+                        </Button>
+                        <Button 
+                            variant="outline-primary" 
+                            size="sm"
+                            onClick={() => navigate('/customer/product-catalog')}
+                            style={{ fontSize: '13px' }}
+                        >
+                            <ShoppingBag size={14} className="me-1" />
+                            Shop More
+                        </Button>
+                    </div>
                 </div>
 
                 {orders.length === 0 ? (
@@ -212,7 +233,7 @@ const MyOrders = () => {
                                                     }}>
                                                         {item.product?.image ? 
                                                             <img 
-                                                                src={item.product.image} 
+                                                                src={item.product.image ? `http://localhost:5000/uploads/${item.product.image}` : '/placeholder.png'} 
                                                                 alt={item.product.name} 
                                                                 style={{ 
                                                                     width: '100%', 

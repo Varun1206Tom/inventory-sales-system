@@ -444,9 +444,9 @@ const StaffDashboard = () => {
                                 <Button 
                                     variant="outline-primary" 
                                     className="w-100"
-                                    onClick={() => navigate('/staff/reports')}
+                                    onClick={() => navigate('/staff/sales')}
                                 >
-                                    View Full Report
+                                    View Sales Report
                                 </Button>
                             </Card.Body>
                         </Card>

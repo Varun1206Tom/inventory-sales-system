@@ -18,3 +18,17 @@ h1, h2, h3, h4, h5 {
 p {
   color: #6c757d;
 }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Ensure toasts appear above navbar and modals */
+.Toastify__toast-container,
+.toastify-custom-container {
+  z-index: 99999 !important;
+}
+.Toastify__toast {
+  z-index: 99999 !important;
+}

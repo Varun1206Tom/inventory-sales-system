@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Card, Container, Form, Spinner } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import API from '../../services/axios';
 
 const Login = () => {
@@ -14,7 +15,7 @@ const Login = () => {
         e.preventDefault();
 
         if (!email || !password) {
-            alert("Please enter email & password");
+            toast.warning("Please enter email & password");
             return;
         }
 
@@ -30,13 +31,14 @@ const Login = () => {
             localStorage.setItem('user', JSON.stringify(res.data.user));
 
             const role = res.data.user.role;
+            toast.success('Welcome back! Redirecting...');
 
             if (role === 'admin') navigate('/admin');
             else if (role === 'staff') navigate('/staff');
             else navigate('/customer');
 
         } catch (err) {
-            alert(err.response?.data?.message || "Invalid Credentials");
+            toast.error(err.response?.data?.message || "Invalid Credentials");
         } finally {
             setLoading(false);
         }

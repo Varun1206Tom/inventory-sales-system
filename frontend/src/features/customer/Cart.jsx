@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Card, Col, Row, Badge } from 'react-bootstrap';
 import { ArrowLeft, Plus, Minus, Trash2, ShoppingBag, CreditCard } from 'lucide-react';
+import { toast } from 'react-toastify';
 import API from '../../services/axios';
 import AppNavbar from '../../components/AppNavbar';
+import { CartItemSkeleton } from '../../components/Skeleton';
 import { useNavigate } from 'react-router-dom';
 
 const Cart = () => {
@@ -25,29 +27,38 @@ const Cart = () => {
             setCartItems(res.data.items || []);
         } catch (err) {
             console.error("Failed to fetch cart:", err.response?.data || err.message);
-            alert("Failed to fetch cart items");
+            toast.error("Failed to fetch cart items");
         } finally {
             setLoading(false);
         }
     };
 
     const updateQuantity = async (productId, delta) => {
+        const item = cartItems.find(i => i.product._id === productId);
+        if (!item) return;
+
+        const newQuantity = item.quantity + delta;
+
         try {
             setUpdating(true);
-            const updatedItems = cartItems.map(item =>
-                item.product._id === productId
-                    ? { ...item, quantity: item.quantity + delta }
-                    : item
-            ).filter(item => item.quantity > 0);
+            const response = await API.put('/cart/update', {
+                productId,
+                quantity: newQuantity
+            });
 
-            await API.put('/cart/update', {
-                items: updatedItems.map(i => ({ productId: i.product._id, quantity: i.quantity }))
-            }, { headers: { Authorization: `Bearer ${token}` } });
-
-            setCartItems(updatedItems);
+            // Update local state based on response
+            if (newQuantity <= 0) {
+                setCartItems(cartItems.filter(i => i.product._id !== productId));
+            } else {
+                setCartItems(cartItems.map(i =>
+                    i.product._id === productId
+                        ? { ...i, quantity: newQuantity }
+                        : i
+                ));
+            }
         } catch (err) {
             console.error("Failed to update cart:", err.response?.data || err.message);
-            alert("Failed to update cart");
+            toast.error("Failed to update cart");
         } finally {
             setUpdating(false);
         }
@@ -60,7 +71,7 @@ const Cart = () => {
             fetchCart();
         } catch (err) {
             console.error("Failed to remove item:", err.response?.data || err.message);
-            alert("Failed to remove item");
+            toast.error("Failed to remove item");
         } finally {
             setUpdating(false);
         }
@@ -73,11 +84,12 @@ const Cart = () => {
                 items: cartItems.map(i => ({ product: i.product._id, quantity: i.quantity }))
             }, { headers: { Authorization: `Bearer ${token}` } });
 
-            alert("Order placed successfully!");
+            setCartItems([]);
+            toast.success("Order placed successfully!");
             navigate('/success');
         } catch (err) {
             console.error("Failed to place order:", err.response?.data || err.message);
-            alert("Failed to place order");
+            toast.error(err.response?.data?.message || "Failed to place order");
         } finally {
             setUpdating(false);
         }
@@ -86,7 +98,20 @@ const Cart = () => {
     const totalAmount = cartItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
     const totalItems = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-    if (loading) return <AppNavbar />;
+    if (loading) {
+        return (
+            <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+                <AppNavbar />
+                <div style={{ maxWidth: '1000px', margin: '20px auto', padding: '0 20px' }}>
+                    <div className="bg-white rounded-3 shadow-sm p-3">
+                        {[1, 2, 3].map((i) => (
+                            <CartItemSkeleton key={i} />
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
@@ -183,7 +208,7 @@ const Cart = () => {
                                                     }}>
                                                         {item.product.image ? 
                                                             <img 
-                                                                src={item.product.image} 
+                                                                src={item.product.image ? `http://localhost:5000/uploads/${item.product.image}` : '/placeholder.png'} 
                                                                 alt={item.product.name} 
                                                                 style={{ 
                                                                     width: '100%', 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import API from '../../services/axios';
 import { Spinner } from 'react-bootstrap';
 
@@ -19,12 +20,12 @@ const LandingPage = () => {
         e.preventDefault();
 
         if (!form.email || !form.password) {
-            alert("Please enter email & password");
+            toast.warning("Please enter email & password");
             return;
         }
 
         if (!isLogin && !form.name) {
-            alert("Please enter your name");
+            toast.warning("Please enter your name");
             return;
         }
 
@@ -42,6 +43,7 @@ const LandingPage = () => {
                 localStorage.setItem('user', JSON.stringify(res.data.user));
 
                 const role = res.data.user.role;
+                toast.success(`Welcome back! Redirecting...`);
 
                 // Redirect based on role
                 if (role === 'admin') navigate('/admin');
@@ -56,12 +58,12 @@ const LandingPage = () => {
                     role: form.role // Send selected role to backend
                 });
 
-                alert("Registration Successful! Please login.");
+                toast.success("Registration successful! Please login.");
                 setIsLogin(true);
                 setForm({ name: '', email: '', password: '', role: 'customer' });
             }
         } catch (err) {
-            alert(err.response?.data?.message || (isLogin ? "Invalid Credentials" : "Registration Failed"));
+            toast.error(err.response?.data?.message || (isLogin ? "Invalid Credentials" : "Registration Failed"));
         } finally {
             setLoading(false);
         }

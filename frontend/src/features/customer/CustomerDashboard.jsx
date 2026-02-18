@@ -30,7 +30,7 @@ const CustomerDashboard = () => {
                             <Card.Body>
                                 <h5>Cart</h5>
                                 <p>Manage Orders</p>
-                                <Button variant="primary" onClick={() => navigate('/customer/cart')}>View Catalog</Button>
+                                <Button variant="primary" onClick={() => navigate('/customer/cart')}>View Cart</Button>
                             </Card.Body>
                         </Card>
                     </Col>
@@ -40,7 +40,7 @@ const CustomerDashboard = () => {
                             <Card.Body>
                                 <h5>My Orders</h5>
                                 <p>Track Status</p>
-                                <Button variant="primary" onClick={() => navigate('/customer/order-history')}>View Catalog</Button>
+                                <Button variant="primary" onClick={() => navigate('/customer/orders')}>View Orders</Button>
                             </Card.Body>
                         </Card>
                     </Col>

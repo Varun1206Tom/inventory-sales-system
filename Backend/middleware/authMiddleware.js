@@ -14,6 +14,17 @@ const authMiddleware = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+    // Handle hardcoded admin
+    if (decoded.id === "admin-id") {
+      req.user = { 
+        _id: "admin-id", 
+        role: "admin", 
+        name: "admin@gmail.com", 
+        email: "admin@gmail.com" 
+      };
+      return next();
+    }
+
     // Attach user object from DB to req
     const user = await User.findById(decoded.id);
     if (!user) return res.status(401).json({ message: "User not found" });

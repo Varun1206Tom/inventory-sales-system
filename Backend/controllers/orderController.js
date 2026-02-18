@@ -1,5 +1,6 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
+const Cart = require('../models/Cart');
 
 // Customer places an order
 exports.createOrder = async (req, res) => {
@@ -36,6 +37,13 @@ exports.createOrder = async (req, res) => {
             totalAmount: total,
             status: "placed"
         });
+
+        // 4️⃣ Clear customer cart after successful order
+        await Cart.findOneAndUpdate(
+            { customer: customerId },
+            { $set: { items: [] } },
+            { new: true }
+        );
 
         res.json({ message: "Order placed successfully", order });
     } catch (err) {

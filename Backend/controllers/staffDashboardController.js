@@ -40,8 +40,8 @@ exports.getRecentOrders = async (req, res) => {
         
         const formatted = orders.map(o => ({
             _id: o._id,
-            orderId: o._id.slice(-6),
-            customerName: o.customer.name,
+            orderId: o._id.toString().slice(-6),
+            customerName: o.customer?.name || 'Unknown',
             items: o.items,
             total: o.totalAmount,
             status: o.status,
@@ -97,5 +97,56 @@ exports.getSalesHistory = async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Failed to fetch sales history" });
+    }
+};
+
+// Get all orders (for admin/staff order management)
+exports.getAllOrders = async (req, res) => {
+    try {
+        const { status } = req.query; // Optional status filter
+        
+        let filter = {};
+        if (status && status !== 'all') {
+            filter.status = status;
+        }
+
+        const orders = await Order.find(filter)
+            .sort({ createdAt: -1 })
+            .populate('customer', 'name email')
+            .populate('items.product', 'name price');
+
+        const formatted = orders.map(o => ({
+            _id: o._id,
+            orderId: o._id.toString().slice(-6),
+            customerName: o.customer?.name || 'Unknown',
+            items: o.items,
+            totalAmount: o.totalAmount,
+            status: o.status,
+            createdAt: o.createdAt
+        }));
+
+        res.json(formatted);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to fetch orders" });
+    }
+};
+
+// Update order status (for admin - no stock deduction)
+exports.updateOrderStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { status } = req.body;
+
+        const order = await Order.findById(orderId);
+        if (!order) return res.status(404).json({ message: "Order not found" });
+
+        order.status = status;
+        await order.save();
+
+        res.json({ message: `Order status updated to ${status}`, order });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Failed to update order status" });
     }
 };

@@ -17,7 +17,9 @@ import {
 } from 'lucide-react';
 import API from '../../services/axios';
 import AppNavbar from '../../components/AppNavbar';
+import { ProductCardSkeleton } from '../../components/Skeleton';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 const ProductCatalog = () => {
 
@@ -37,15 +39,7 @@ const ProductCatalog = () => {
     const [pendingProduct, setPendingProduct] = useState(null);
     const navigate = useNavigate();
 
-    // Categories
-    const categories = [
-        { id: 'all', name: 'All Products', icon: '📦' },
-        { id: 'electronics', name: 'Electronics', icon: '💻' },
-        { id: 'fashion', name: 'Fashion', icon: '👕' },
-        { id: 'home', name: 'Home & Living', icon: '🏠' },
-        { id: 'beauty', name: 'Beauty', icon: '💄' },
-        { id: 'sports', name: 'Sports', icon: '⚽' }
-    ];
+    const [categories, setCategories] = useState([{ id: 'all', name: 'All Products', icon: '📦' }]);
 
     useEffect(() => {
         fetchProducts();
@@ -63,6 +57,14 @@ const ProductCatalog = () => {
             const res = await API.get('/products');
             setProducts(res.data);
             setFilteredProducts(res.data);
+
+            // Set dynamic categories
+            const uniqueCategories = ['all', ...new Set(res.data.map(p => p.category).filter(Boolean))];
+            setCategories(uniqueCategories.map(cat => ({
+                id: cat,
+                name: cat === 'all' ? 'All Products' : cat,
+                icon: '📦' // default icon
+            })));
         } catch (err) {
             console.error("Failed to fetch products:", err.response?.data || err.message);
         } finally {
@@ -142,12 +144,14 @@ const ProductCatalog = () => {
             setCartItems(updatedCart);
             localStorage.setItem('cart', JSON.stringify(updatedCart));
 
+            // toast.success(`${product.name} added to cart!`);
             setAddedProduct(product);
             setShowCartAlert(true);
             setTimeout(() => setShowCartAlert(false), 3000);
 
         } catch (err) {
             console.error("Failed to add to cart:", err.response?.data || err.message);
+            toast.error(err.response?.data?.message || 'Failed to add item to cart');
         }
     };
 
@@ -313,6 +317,17 @@ const ProductCatalog = () => {
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: '13px'
+        },
+        categoryFilter: {
+            marginLeft: '20px'
+        },
+        categorySelect: {
+            padding: '8px 12px',
+            border: '1px solid #dee2e6',
+            borderRadius: '6px',
+            fontSize: '13px',
+            outline: 'none',
+            minWidth: '150px'
         },
         navRight: {
             display: 'flex',
@@ -595,6 +610,15 @@ const ProductCatalog = () => {
             padding: '2px 6px',
             borderRadius: '4px'
         },
+        productTag: {
+            display: 'inline-block',
+            fontSize: '12px',
+            color: '#fff',
+            background: '#ff6b6b',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            marginBottom: '8px'
+        },
         productStock: (stock) => ({
             display: 'inline-flex',
             alignItems: 'center',
@@ -770,9 +794,12 @@ const ProductCatalog = () => {
         return (
             <div style={styles.container}>
                 <AppNavbar />
-                <div style={styles.loadingContainer}>
-                    <div style={styles.spinner}></div>
-                    <p>Loading amazing products...</p>
+                <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+                    <Row xs={1} sm={2} md={3} lg={4} className="g-4">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <Col key={i}><ProductCardSkeleton /></Col>
+                        ))}
+                    </Row>
                 </div>
             </div>
         );
@@ -817,6 +844,18 @@ const ProductCatalog = () => {
                         <button style={styles.searchBtn}>
                             <Search size={15} />
                         </button>
+                    </div>
+
+                    <div style={styles.categoryFilter}>
+                        <Form.Select
+                            value={selectedCategory}
+                            onChange={(e) => setSelectedCategory(e.target.value)}
+                            style={styles.categorySelect}
+                        >
+                            {categories.map(cat => (
+                                <option key={cat.id} value={cat.id}>{cat.name}</option>
+                            ))}
+                        </Form.Select>
                     </div>
 
                     <div style={styles.navRight}>
@@ -965,7 +1004,7 @@ const ProductCatalog = () => {
                                         >
                                             {product.image ? (
                                                 <img
-                                                    src={product.image}
+                                                    src={product.image ? `http://localhost:5000/uploads/${product.image}` : '/placeholder.png'}
                                                     alt={product.name}
                                                     style={styles.productImageImg}
                                                 />
@@ -993,15 +1032,21 @@ const ProductCatalog = () => {
 
                                             <div style={styles.productPrice}>
                                                 <span style={styles.currentPrice}>₹{product.price}</span>
-                                                {product.originalPrice && (
+                                                {product.mrp && product.mrp > product.price && (
                                                     <>
-                                                        <span style={styles.originalPrice}>₹{product.originalPrice}</span>
+                                                        <span style={styles.originalPrice}>₹{product.mrp}</span>
                                                         <span style={styles.saving}>
-                                                            Save ₹{product.originalPrice - product.price}
+                                                            Save ₹{product.mrp - product.price}
                                                         </span>
                                                     </>
                                                 )}
                                             </div>
+
+                                            {product.productTag && (
+                                                <div style={styles.productTag}>
+                                                    {product.productTag}
+                                                </div>
+                                            )}
 
                                             <div style={styles.productStock(stockStatus)}>
                                                 <span>{stockStatus.icon}</span>

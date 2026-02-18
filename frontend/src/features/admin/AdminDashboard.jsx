@@ -4,6 +4,7 @@ import AppNavbar from '../../components/AppNavbar';
 import ProductManagement from './ProductManagement';
 import StaffManagement from './StaffManagement';
 import SalesReport from './SalesReport';
+import OrderManagement from './OrderManagement';
 
 const AdminDashboard = () => {
     const [tab, setTab] = useState('products');
@@ -338,6 +339,24 @@ const AdminDashboard = () => {
                             📈 Sales
                         </div>
                     </div>
+                    <div style={styles.navItem}>
+                        <div 
+                            style={styles.navLink(tab === 'orders')}
+                            onClick={() => setTab('orders')}
+                            onMouseOver={(e) => {
+                                if (tab !== 'orders') {
+                                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                }
+                            }}
+                            onMouseOut={(e) => {
+                                if (tab !== 'orders') {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                }
+                            }}
+                        >
+                            📦 Orders
+                        </div>
+                    </div>
                 </div>
 
                 {/* Content Area */}
@@ -345,6 +364,7 @@ const AdminDashboard = () => {
                     {tab === 'products' && <ProductManagement />}
                     {tab === 'staff' && <StaffManagement />}
                     {tab === 'sales' && <SalesReport />}
+                    {tab === 'orders' && <OrderManagement />}
                 </div>
 
                 {/* Footer */}

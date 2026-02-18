@@ -9,6 +9,12 @@ router.get('/stats', authMiddleware, authorizeRoles('staff','admin'), ctrl.getSt
 // Recent orders
 router.get('/recent-orders', authMiddleware, authorizeRoles('staff','admin'), ctrl.getRecentOrders);
 
+// Get all orders (with optional status filter)
+router.get('/orders', authMiddleware, authorizeRoles('staff','admin'), ctrl.getAllOrders);
+
+// Update order status (admin only)
+router.put('/orders/:orderId', authMiddleware, authorizeRoles('staff','admin'), ctrl.updateOrderStatus);
+
 // Process a single order
 router.put('/orders/:orderId/process', authMiddleware, authorizeRoles('staff','admin'), ctrl.processOrder);
 

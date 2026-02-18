@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Table, Modal } from 'react-bootstrap';
 import API from '../../services/axios';
+import { toast } from 'react-toastify';
 
 const StaffManagement = () => {
     const [staff, setStaff] = useState([]);
@@ -18,16 +19,22 @@ const StaffManagement = () => {
         e.preventDefault();
         try {
             await API.post('/staff', form);
+            toast.success('Staff member added successfully!');
             loadStaff();
             setForm({ name:'', email:'', password:'' });
-        } catch (err) { console.log(err); }
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to add staff member');
+            console.log(err);
+        }
     };
 
     const toggleAccess = async (id) => {
         try {
             await API.patch(`/staff/toggle/${id}`);
+            toast.success('Staff access updated successfully!');
             loadStaff();
         } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update staff access');
             console.log("Error in Denying Access :", error);
         }
     };
@@ -38,9 +45,11 @@ const StaffManagement = () => {
         try {
             const { _id, name, email, password } = editingStaff;
             await API.put(`/staff/${_id}`, { name, email, password });
+            toast.success('Staff member updated successfully!');
             setEditingStaff(null);
             loadStaff();
         } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to update staff member');
             console.log("Error in edit", error);
         }
     };
