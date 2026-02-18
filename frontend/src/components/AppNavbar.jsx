@@ -19,7 +19,7 @@ const AppNavbar = () => {
         <div>
             <Navbar bg="dark" variant="dark">
                 <Container>
-                    <Navbar.Brand>Inventory System</Navbar.Brand>
+                    <Navbar.Brand>Inventory & Sales System</Navbar.Brand>
 
                     {accessToken ? (
                         <Nav>

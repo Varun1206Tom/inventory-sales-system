@@ -85,6 +85,7 @@ const Cart = () => {
             }, { headers: { Authorization: `Bearer ${token}` } });
 
             setCartItems([]);
+            localStorage.removeItem('cart'); // Clear cart from localStorage
             toast.success("Order placed successfully!");
             navigate('/success');
         } catch (err) {
@@ -173,9 +174,10 @@ const Cart = () => {
                             <Button 
                                 onClick={() => navigate('/customer/product-catalog')}
                                 variant="primary"
-                                size="lg"
+                                size="sm"
+                                className='fw-semibold'
                                 style={{ 
-                                    padding: '12px 30px',
+                                    padding: '8px 25px',
                                     borderRadius: '8px'
                                 }}
                             >

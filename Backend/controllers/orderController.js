@@ -14,7 +14,7 @@ exports.createOrder = async (req, res) => {
 
         let total = 0;
 
-        // 1️⃣ Check stock and calculate total
+        // Check stock and calculate total
         for (const item of items) {
             const product = await Product.findById(item.product);
             if (!product) return res.status(404).json({ message: `Product not found` });
@@ -22,15 +22,15 @@ exports.createOrder = async (req, res) => {
                 return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
             }
             total += product.price * item.quantity;
-            item.price = product.price; // save real price
+            item.price = product.price;
         }
 
-        // 2️⃣ Deduct stock immediately
+        // Deduct stock immediately
         for (const item of items) {
             await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
         }
 
-        // 3️⃣ Create order
+        // Create order
         const order = await Order.create({
             customer: customerId,
             items,
@@ -38,7 +38,7 @@ exports.createOrder = async (req, res) => {
             status: "placed"
         });
 
-        // 4️⃣ Clear customer cart after successful order
+        // Clear customer cart after successful order
         await Cart.findOneAndUpdate(
             { customer: customerId },
             { $set: { items: [] } },

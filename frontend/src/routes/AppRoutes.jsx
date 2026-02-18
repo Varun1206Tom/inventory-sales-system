@@ -1,5 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import Login from '../features/auth/Login';
 import AdminDashboard from '../features/admin/AdminDashboard';
 import StaffDashboard from '../features/staff/StaffDashboard';
 import StaffOrderProcessing from '../features/staff/StaffOrderProcessing';
@@ -12,7 +11,7 @@ import Cart from '../features/customer/Cart';
 import SuccessScreen from '../features/customer/SuccessScreen';
 import MyOrders from '../features/customer/MyOrders';
 import AdminSalesReport from '../features/admin/SalesReport';
-import StaffSalesReport from '../features/staff/SalesReport';
+import SalesHistory from '../features/staff/SalesHistory';
 
 export default function AppRoutes() {
     return (
@@ -48,7 +47,7 @@ export default function AppRoutes() {
 
             <Route path="/staff/sales" element={
                 <ProtectedRoute allowedRole="staff">
-                    <StaffSalesReport />
+                    <SalesHistory />
                 </ProtectedRoute>
             } />
 

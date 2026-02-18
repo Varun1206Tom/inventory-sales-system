@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import API from '../../services/axios';
@@ -8,13 +8,20 @@ const LandingPage = () => {
     const navigate = useNavigate();
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
-    const [selectedRole, setSelectedRole] = useState('customer'); // Default to customer
+    const [selectedRole, setSelectedRole] = useState('customer');
     const [form, setForm] = useState({
         name: '',
         email: '',
         password: '',
-        role: 'customer' // Default role for registration
+        role: 'customer'
     });
+
+    // Demo credentials for quick access
+    const demoAccounts = {
+        customer: { email: 'john@example.com', password: '123456' },
+        staff: { email: 'staff@example.com', password: '123456' },
+        admin: { email: 'admin@example.com', password: '123456' }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -33,7 +40,6 @@ const LandingPage = () => {
             setLoading(true);
 
             if (isLogin) {
-                // Login - role will be determined by backend
                 const res = await API.post('/auth/login', {
                     email: form.email.trim(),
                     password: form.password.trim()
@@ -43,24 +49,25 @@ const LandingPage = () => {
                 localStorage.setItem('user', JSON.stringify(res.data.user));
 
                 const role = res.data.user.role;
-                toast.success(`Welcome back! Redirecting...`);
+                toast.success(`Welcome back!`);
 
                 // Redirect based on role
                 if (role === 'admin') navigate('/admin');
                 else if (role === 'staff') navigate('/staff');
                 else navigate('/');
             } else {
-                // Register - with selected role
+                // Only allow customer registration
                 await API.post('/auth/register', {
                     name: form.name.trim(),
                     email: form.email.trim(),
                     password: form.password.trim(),
-                    role: form.role // Send selected role to backend
+                    role: 'customer' // Force role to customer for registration
                 });
 
                 toast.success("Registration successful! Please login.");
                 setIsLogin(true);
                 setForm({ name: '', email: '', password: '', role: 'customer' });
+                setSelectedRole('customer');
             }
         } catch (err) {
             toast.error(err.response?.data?.message || (isLogin ? "Invalid Credentials" : "Registration Failed"));
@@ -69,18 +76,20 @@ const LandingPage = () => {
         }
     };
 
-    // Quick access for demo purposes
-    const quickAccess = (role, email, password) => {
-        setForm({ ...form, email, password });
+    const quickAccess = (role) => {
+        const account = demoAccounts[role];
+        setForm({ ...form, email: account.email, password: account.password });
         setSelectedRole(role);
-        // Auto submit after a brief delay
+        
+        // Auto submit
         setTimeout(() => {
-            document.getElementById('login-form').dispatchEvent(
-                new Event('submit', { cancelable: true, bubbles: true })
-            );
+            const form = document.getElementById('login-form');
+            const event = new Event('submit', { cancelable: true, bubbles: true });
+            form.dispatchEvent(event);
         }, 100);
     };
 
+    // Compact styles
     const styles = {
         container: {
             minHeight: '100vh',
@@ -88,404 +97,426 @@ const LandingPage = () => {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '20px',
+            padding: '16px',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         },
         card: {
             display: 'flex',
-            maxWidth: '1200px',
+            maxWidth: '1000px',
             width: '100%',
             backgroundColor: 'white',
-            borderRadius: '20px',
+            borderRadius: '16px',
             overflow: 'hidden',
             boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
         },
         leftPanel: {
-            flex: '1.2',
+            flex: '1',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            padding: '40px',
+            padding: '32px',
             color: 'white',
             display: 'flex',
             flexDirection: 'column'
         },
         rightPanel: {
-            flex: '1',
-            padding: '40px',
+            flex: '1.2',
+            padding: '32px',
             backgroundColor: 'white'
         },
         brandName: {
-            fontSize: '30px',
+            fontSize: '24px',
             fontWeight: '700',
-            marginBottom: '10px',
-            letterSpacing: '-0.5px'
+            marginBottom: '4px',
         },
         brandSub: {
-            fontSize: '14px',
+            fontSize: '12px',
             opacity: '0.9',
-            marginBottom: '30px',
-            borderBottom: '1px solid rgba(255,255,255,0.2)',
-            paddingBottom: '20px'
+            marginBottom: '24px',
+            paddingBottom: '16px',
+            borderBottom: '1px solid rgba(255,255,255,0.2)'
         },
         roleCards: {
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '15px',
-            marginBottom: '30px'
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            marginBottom: '24px'
         },
-        roleCard: (isActive, roleColor) => ({
+        roleCard: (isActive, roleColor, isDisabled = false) => ({
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
             backgroundColor: isActive ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)',
             backdropFilter: 'blur(10px)',
-            borderRadius: '12px',
-            padding: '15px',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            border: isActive ? `2px solid ${roleColor}` : '2px solid transparent'
+            borderRadius: '10px',
+            padding: '12px',
+            cursor: isDisabled ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+            border: isActive ? `2px solid ${roleColor}` : '2px solid transparent',
+            opacity: isDisabled ? 0.6 : 1
         }),
         roleIcon: {
-            fontSize: '24px',
-            marginBottom: '8px'
+            fontSize: '20px',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            borderRadius: '8px'
+        },
+        roleInfo: {
+            flex: 1
         },
         roleTitle: {
-            fontSize: '16px',
+            fontSize: '14px',
             fontWeight: '600',
-            marginBottom: '4px'
+            marginBottom: '2px'
         },
         roleDesc: {
             fontSize: '11px',
-            opacity: '0.8',
-            lineHeight: '1.4'
+            opacity: '0.8'
+        },
+        badge: {
+            fontSize: '10px',
+            padding: '2px 6px',
+            borderRadius: '10px',
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            marginLeft: '8px'
         },
         featureSection: {
-            marginTop: 'auto'
+            flex: 1
         },
         featureTitle: {
-            fontSize: '18px',
+            fontSize: '14px',
             fontWeight: '600',
-            marginBottom: '15px'
+            marginBottom: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
         },
         featureList: {
             listStyle: 'none',
             padding: 0,
             margin: 0
         },
-        featureItem: (roleColor) => ({
+        featureItem: {
             display: 'flex',
             alignItems: 'center',
-            gap: '12px',
-            marginBottom: '12px',
-            fontSize: '13px',
-            padding: '8px 12px',
+            gap: '8px',
+            marginBottom: '8px',
+            fontSize: '12px',
+            padding: '6px 10px',
             backgroundColor: 'rgba(255,255,255,0.05)',
-            borderRadius: '8px',
-            borderLeft: `3px solid ${roleColor}`
-        }),
-        featureIcon: {
-            fontSize: '16px'
+            borderRadius: '6px'
         },
         demoSection: {
             marginTop: '20px',
-            padding: '15px',
+            padding: '12px',
             backgroundColor: 'rgba(0,0,0,0.2)',
-            borderRadius: '12px'
+            borderRadius: '10px'
         },
         demoTitle: {
-            fontSize: '14px',
+            fontSize: '12px',
             fontWeight: '600',
-            marginBottom: '10px'
+            marginBottom: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
         },
         demoButtons: {
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '8px'
+            gap: '6px'
         },
         demoButton: (roleColor) => ({
-            padding: '8px',
-            fontSize: '11px',
+            padding: '6px',
+            fontSize: '10px',
             backgroundColor: 'rgba(255,255,255,0.1)',
             border: 'none',
             borderRadius: '6px',
             color: 'white',
             cursor: 'pointer',
-            transition: 'all 0.2s',
-            borderLeft: `2px solid ${roleColor}`
+            borderLeft: `2px solid ${roleColor}`,
+            transition: 'all 0.2s'
         }),
         title: {
-            fontSize: '28px',
+            fontSize: '24px',
             fontWeight: '600',
             color: '#2d3748',
-            marginBottom: '8px'
+            marginBottom: '4px'
         },
         subtitle: {
-            fontSize: '14px',
-            color: '#718096',
-            marginBottom: '24px'
-        },
-        roleSelector: {
-            display: 'flex',
-            gap: '10px',
-            marginBottom: '20px',
-            padding: '4px',
-            backgroundColor: '#f7fafc',
-            borderRadius: '10px'
-        },
-        roleTab: (isActive, roleColor) => ({
-            flex: 1,
-            padding: '10px',
-            textAlign: 'center',
             fontSize: '13px',
-            fontWeight: '500',
+            color: '#718096',
+            marginBottom: '20px'
+        },
+        registrationNotice: {
+            padding: '10px',
+            backgroundColor: '#f0fff4',
             borderRadius: '8px',
-            cursor: 'pointer',
-            backgroundColor: isActive ? 'white' : 'transparent',
-            color: isActive ? roleColor : '#718096',
-            boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.05)' : 'none',
-            transition: 'all 0.2s',
-            border: isActive ? `1px solid ${roleColor}` : '1px solid transparent'
-        }),
+            marginBottom: '16px',
+            fontSize: '12px',
+            color: '#276749',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            border: '1px solid #9ae6b4'
+        },
         form: {
             display: 'flex',
             flexDirection: 'column',
-            gap: '16px'
+            gap: '12px'
         },
         inputGroup: {
             display: 'flex',
             flexDirection: 'column',
-            gap: '6px'
+            gap: '4px'
         },
         label: {
-            fontSize: '13px',
+            fontSize: '12px',
             fontWeight: '500',
             color: '#4a5568'
         },
         input: {
-            padding: '12px 16px',
-            fontSize: '14px',
+            padding: '10px 12px',
+            fontSize: '13px',
             border: '1px solid #e2e8f0',
-            borderRadius: '10px',
+            borderRadius: '8px',
             outline: 'none',
-            transition: 'border-color 0.2s, box-shadow 0.2s',
+            transition: 'border-color 0.2s',
             backgroundColor: '#f7fafc'
         },
-        button: (isLogin, roleColor) => ({
-            padding: '12px',
-            fontSize: '15px',
+        button: (loading, roleColor) => ({
+            padding: '10px',
+            fontSize: '14px',
             fontWeight: '600',
             color: 'white',
             backgroundColor: roleColor,
             border: 'none',
-            borderRadius: '10px',
-            cursor: 'pointer',
-            transition: 'transform 0.2s, opacity 0.2s',
-            marginTop: '8px',
+            borderRadius: '8px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            marginTop: '4px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px'
+            gap: '6px'
         }),
         toggleText: {
             textAlign: 'center',
-            marginTop: '20px',
-            fontSize: '14px',
+            marginTop: '16px',
+            fontSize: '12px',
             color: '#718096'
         },
         toggleLink: (roleColor) => ({
             color: roleColor,
             fontWeight: '600',
             cursor: 'pointer',
-            textDecoration: 'none',
             marginLeft: '4px'
         }),
         infoBox: {
-            marginTop: '20px',
-            padding: '16px',
+            marginTop: '16px',
+            padding: '10px',
             backgroundColor: '#ebf8ff',
-            borderRadius: '10px',
-            border: '1px solid #bee3f8',
-            fontSize: '13px',
-            color: '#2c5282'
+            borderRadius: '8px',
+            fontSize: '11px',
+            color: '#2c5282',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+        },
+        footer: {
+            marginTop: '12px',
+            fontSize: '10px',
+            color: '#a0aec0',
+            textAlign: 'center'
         }
     };
 
     // Role-based colors
     const roleColors = {
-        customer: '#48bb78', // Green
-        staff: '#f6ad55',    // Orange
-        admin: '#f56565'      // Red
+        customer: '#48bb78',
+        staff: '#f6ad55',
+        admin: '#f56565'
     };
 
     // Role-based features
     const roleFeatures = {
         customer: [
-            'Browse products catalog',
-            'Place new orders',
-            'Track order status',
-            'View order history',
+            'Browse products',
+            'Place orders',
+            'Track orders',
+            'View history'
         ],
         staff: [
-            'Process customer orders',
-            'Update stock levels',
-            'Manage inventory',
-            'View sales reports',
+            'Process orders',
+            'Manage stock',
+            'Update inventory',
+            'View reports'
         ],
         admin: [
-            'Full system access',
-            'Manage staff accounts',
-            'View all reports',
-            'Monitor all activities'
+            'Full access',
+            'Manage users',
+            'All reports',
+            'Monitor system'
         ]
+    };
+
+    // Role icons
+    const roleIcons = {
+        customer: '🛍️',
+        staff: '👥',
+        admin: '👑'
     };
 
     return (
         <div style={styles.container}>
             <div style={styles.card}>
-                {/* Left Panel - Role-based Information */}
+                {/* Left Panel */}
                 <div style={styles.leftPanel}>
                     <div>
-                        <div style={styles.brandName}>Inventory & Sales Mgt</div>
-                        <div style={styles.brandSub}>Complete Inventory & Order Management System</div>
+                        <div style={styles.brandName}>Inventory & Sales Management</div>
+                        <div style={styles.brandSub}>Complete management system</div>
                     </div>
 
                     {/* Role Cards */}
                     <div style={styles.roleCards}>
-                        {['customer', 'staff', 'admin']
-                            .filter(role => isLogin || role === 'customer') // Show all if logged in, otherwise only customer
-                            .map((role) => (
-                                <div
-                                    key={role}
-                                    style={styles.roleCard(selectedRole === role, roleColors[role])}
-                                    onClick={() => {
-                                        setSelectedRole(role);
-                                        if (!isLogin) setForm({ ...form, role });
-                                    }}
-                                >
-                                    <div style={styles.roleIcon}>
-                                        {role === 'customer' && '🛍️'}
-                                        {role === 'staff' && '👥'}
-                                        {role === 'admin' && '👑'}
-                                    </div>
-                                    <div style={styles.roleTitle}>
-                                        {role.charAt(0).toUpperCase() + role.slice(1)}
-                                    </div>
-                                    <div style={styles.roleDesc}>
-                                        {role === 'customer' && 'Browse & place orders'}
-                                        {role === 'staff' && 'Process orders & manage stock'}
-                                        {role === 'admin' && 'Full system control'}
-                                    </div>
+                        {/* Customer - Always selectable */}
+                        <div
+                            style={styles.roleCard(selectedRole === 'customer', roleColors.customer)}
+                            onClick={() => {
+                                setSelectedRole('customer');
+                                if (!isLogin) setIsLogin(true); // Switch to login if trying to register as customer (though customer can register)
+                            }}
+                        >
+                            <span style={styles.roleIcon}>{roleIcons.customer}</span>
+                            <div style={styles.roleInfo}>
+                                <div style={styles.roleTitle}>
+                                    Customer
+                                    {!isLogin && selectedRole === 'customer' && (
+                                        <span style={styles.badge}>Register</span>
+                                    )}
                                 </div>
-                            ))}
+                                <div style={styles.roleDesc}>Browse & shop</div>
+                            </div>
+                        </div>
+
+                        {/* Staff - Login only, no registration */}
+                        <div
+                            style={styles.roleCard(selectedRole === 'staff', roleColors.staff, !isLogin)}
+                            onClick={() => {
+                                if (isLogin) {
+                                    setSelectedRole('staff');
+                                } else {
+                                    toast.info("Staff accounts can only be created by admin");
+                                }
+                            }}
+                        >
+                            <span style={styles.roleIcon}>{roleIcons.staff}</span>
+                            <div style={styles.roleInfo}>
+                                <div style={styles.roleTitle}>
+                                    Staff
+                                    {!isLogin && (
+                                        <span style={styles.badge}>Login only</span>
+                                    )}
+                                </div>
+                                <div style={styles.roleDesc}>Manage orders</div>
+                            </div>
+                        </div>
+
+                        {/* Admin - Login only, no registration */}
+                        <div
+                            style={styles.roleCard(selectedRole === 'admin', roleColors.admin, !isLogin)}
+                            onClick={() => {
+                                if (isLogin) {
+                                    setSelectedRole('admin');
+                                } else {
+                                    toast.info("Admin accounts can only be created by super admin");
+                                }
+                            }}
+                        >
+                            <span style={styles.roleIcon}>{roleIcons.admin}</span>
+                            <div style={styles.roleInfo}>
+                                <div style={styles.roleTitle}>
+                                    Admin
+                                    {!isLogin && (
+                                        <span style={styles.badge}>Login only</span>
+                                    )}
+                                </div>
+                                <div style={styles.roleDesc}>Full control</div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Features for selected role */}
+                    {/* Features */}
                     <div style={styles.featureSection}>
                         <div style={styles.featureTitle}>
-                            {selectedRole === 'customer' && '🛍️ Customer Features'}
-                            {selectedRole === 'staff' && '👥 Staff Features'}
-                            {selectedRole === 'admin' && '👑 Admin Features'}
+                            <span>{roleIcons[selectedRole]}</span>
+                            {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)} Features
                         </div>
                         <ul style={styles.featureList}>
                             {roleFeatures[selectedRole].map((feature, index) => (
-                                <li key={index} style={styles.featureItem(roleColors[selectedRole])}>
-                                    <span style={styles.featureIcon}>✓</span>
+                                <li key={index} style={styles.featureItem}>
+                                    <span style={{ color: roleColors[selectedRole] }}>✓</span>
                                     {feature}
                                 </li>
                             ))}
                         </ul>
                     </div>
-
-                    {/* Demo Quick Access */}
-                    {/* <div style={styles.demoSection}>
-                        <div style={styles.demoTitle}>🔑 Quick Demo Access</div>
-                        <div style={styles.demoButtons}>
-                            <button
-                                style={styles.demoButton(roleColors.customer)}
-                                onClick={() => quickAccess('customer')}
-                            >
-                                🛍️ Customer
-                            </button>
-                            <button
-                                style={styles.demoButton(roleColors.staff)}
-                                onClick={() => quickAccess('staff',)}
-                            >
-                                👥 Staff
-                            </button>
-                            <button
-                                style={styles.demoButton(roleColors.admin)}
-                                onClick={() => quickAccess('admin',)}
-                            >
-                                👑 Admin
-                            </button>
-                        </div>
-                    </div> */}
                 </div>
 
                 {/* Right Panel - Auth Form */}
                 <div style={styles.rightPanel}>
                     <h2 style={styles.title}>
-                        {isLogin ? 'Welcome Back!' : 'Create Account'}
+                        {isLogin ? 'Welcome!' : 'Create Customer Account'}
                     </h2>
                     <p style={styles.subtitle}>
-                        {isLogin
-                            ? `Sign in as ${selectedRole}`
-                            : `Register as ${selectedRole}`}
+                        {isLogin 
+                            ? `Sign in as ${selectedRole}` 
+                            : 'Register to start shopping'
+                        }
                     </p>
 
-                    {/* Role Selector for Registration */}
-                    {/* {!isLogin && (
-                        <div style={styles.roleSelector}>
-                            {['customer', 'staff', 'admin'].map((role) => (
-                                <div
-                                    key={role}
-                                    style={styles.roleTab(form.role === role, roleColors[role])}
-                                    onClick={() => setForm({ ...form, role })}
-                                >
-                                    {role === 'customer' && '🛍️ '}
-                                    {role === 'staff' && '👥 '}
-                                    {role === 'admin' && '👑 '}
-                                    {role.charAt(0).toUpperCase() + role.slice(1)}
-                                </div>
-                            ))}
+                    {/* Registration Notice for non-customer roles */}
+                    {!isLogin && selectedRole !== 'customer' && (
+                        <div style={styles.registrationNotice}>
+                            <span>ℹ️</span>
+                            <span>
+                                {selectedRole === 'staff' 
+                                    ? 'Staff accounts can only be created by administrators'
+                                    : 'Admin accounts can only be created by super admin'
+                                }
+                            </span>
                         </div>
-                    )} */}
+                    )}
 
                     <form id="login-form" style={styles.form} onSubmit={handleSubmit}>
-                        {!isLogin && (
+                        {/* Only show name field for customer registration */}
+                        {!isLogin && selectedRole === 'customer' && (
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Full Name</label>
+                                <label style={styles.label}>Name</label>
                                 <input
                                     type="text"
-                                    placeholder="Enter your name"
+                                    placeholder="Your name"
                                     style={styles.input}
                                     value={form.name}
                                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                    onFocus={(e) => {
-                                        e.target.style.borderColor = roleColors[selectedRole];
-                                        e.target.style.boxShadow = `0 0 0 3px ${roleColors[selectedRole]}20`;
-                                    }}
-                                    onBlur={(e) => {
-                                        e.target.style.borderColor = '#e2e8f0';
-                                        e.target.style.boxShadow = 'none';
-                                    }}
-                                    required={!isLogin}
+                                    onFocus={(e) => e.target.style.borderColor = roleColors.customer}
+                                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                                    required
                                 />
                             </div>
                         )}
 
                         <div style={styles.inputGroup}>
-                            <label style={styles.label}>Email Address</label>
+                            <label style={styles.label}>Email</label>
                             <input
                                 type="email"
                                 placeholder="you@example.com"
                                 style={styles.input}
                                 value={form.email}
                                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                                onFocus={(e) => {
-                                    e.target.style.borderColor = roleColors[selectedRole];
-                                    e.target.style.boxShadow = `0 0 0 3px ${roleColors[selectedRole]}20`;
-                                }}
-                                onBlur={(e) => {
-                                    e.target.style.borderColor = '#e2e8f0';
-                                    e.target.style.boxShadow = 'none';
-                                }}
+                                onFocus={(e) => e.target.style.borderColor = roleColors[selectedRole]}
+                                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                                 required
                             />
                         </div>
@@ -498,78 +529,73 @@ const LandingPage = () => {
                                 style={styles.input}
                                 value={form.password}
                                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                                onFocus={(e) => {
-                                    e.target.style.borderColor = roleColors[selectedRole];
-                                    e.target.style.boxShadow = `0 0 0 3px ${roleColors[selectedRole]}20`;
-                                }}
-                                onBlur={(e) => {
-                                    e.target.style.borderColor = '#e2e8f0';
-                                    e.target.style.boxShadow = 'none';
-                                }}
+                                onFocus={(e) => e.target.style.borderColor = roleColors[selectedRole]}
+                                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                                 required
                             />
                         </div>
 
                         <button
                             type="submit"
-                            style={styles.button(isLogin, roleColors[selectedRole])}
-                            disabled={loading}
-                            onMouseOver={(e) => {
-                                if (!loading) {
-                                    e.currentTarget.style.transform = 'translateY(-1px)';
-                                    e.currentTarget.style.opacity = '0.9';
-                                }
-                            }}
-                            onMouseOut={(e) => {
-                                if (!loading) {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.opacity = '1';
-                                }
-                            }}
+                            style={styles.button(
+                                loading, 
+                                !isLogin && selectedRole !== 'customer' 
+                                    ? '#a0aec0' // Grey out button for non-customer registration
+                                    : roleColors[selectedRole]
+                            )}
+                            disabled={loading || (!isLogin && selectedRole !== 'customer')}
                         >
                             {loading ? (
                                 <>
                                     <Spinner size="sm" style={{ color: 'white' }} />
-                                    {isLogin ? 'Signing in...' : 'Creating account...'}
+                                    {isLogin ? 'Signing in...' : 'Creating...'}
                                 </>
                             ) : (
-                                isLogin ? `Sign in as ${selectedRole}` : `Register as ${selectedRole}`
+                                isLogin 
+                                    ? `Sign in as ${selectedRole}` 
+                                    : selectedRole === 'customer' 
+                                        ? 'Create Account'
+                                        : 'Login Required'
                             )}
                         </button>
                     </form>
 
-                    {/* Role-specific info */}
+                    {/* Info Box */}
                     <div style={styles.infoBox}>
-                        <strong>ℹ️ {selectedRole === 'customer' && 'Customers: '}
-                            {selectedRole === 'staff' && 'Staff Members: '}
-                            {selectedRole === 'admin' && 'Administrators: '}</strong>
-                        {selectedRole === 'customer' && 'Browse products, place orders, and track your purchases.'}
-                        {selectedRole === 'staff' && 'Process orders, update inventory, and manage stock levels.'}
-                        {selectedRole === 'admin' && 'Full system access with user management and reports.'}
+                        <span>ℹ️</span>
+                        <span>
+                            {selectedRole === 'customer' && (
+                                isLogin 
+                                    ? 'Sign in to your customer account'
+                                    : 'Create a customer account to start shopping'
+                            )}
+                            {selectedRole === 'staff' && 'Staff members: Please login with your credentials'}
+                            {selectedRole === 'admin' && 'Administrators: Please login with your credentials'}
+                        </span>
                     </div>
 
-                    {/* Toggle between Login/Register */}
+                    {/* Toggle - Only show for customer role */}
                     {selectedRole === 'customer' && (
                         <div style={styles.toggleText}>
-                            {isLogin ? "Don't have an account?" : "Already have an account?"}
+                            {isLogin ? "New customer?" : "Already have an account?"}
                             <span
-                                style={styles.toggleLink(roleColors[selectedRole])}
+                                style={styles.toggleLink(roleColors.customer)}
                                 onClick={() => {
                                     setIsLogin(!isLogin);
                                     if (!isLogin) {
-                                        // When switching to login, clear the form but keep role selection
                                         setForm({ ...form, name: '' });
                                     }
+                                    setSelectedRole('customer');
                                 }}
                             >
-                                {isLogin ? 'Register here' : ' Sign in'}
+                                {isLogin ? ' Register here' : ' Sign in'}
                             </span>
                         </div>
                     )}
 
                     {/* Footer */}
-                    <div style={{ ...styles.footer, marginTop: '16px', fontSize: '11px', color: '#a0aec0', textAlign: 'center' }}>
-                        By continuing, you agree to our Terms of Service
+                    <div style={styles.footer}>
+                        By continuing, you agree to our Terms
                     </div>
                 </div>
             </div>

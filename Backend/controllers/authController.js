@@ -21,7 +21,7 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   const { email, password } = req.body;
 
-  // ✅ HARDCODED ADMIN LOGIN
+  // HARDCODED ADMIN LOGIN
   if (email === "admin@gmail.com" && password === "admin") {
 
     const token = jwt.sign(
@@ -35,7 +35,7 @@ exports.login = async (req, res) => {
     });
   }
 
-  // ✅ Normal user login
+  // Normal user login
   const user = await User.findOne({ email });
 
   if (!user) return res.status(400).json({ message: "User not found" });
