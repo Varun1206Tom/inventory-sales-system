@@ -12,7 +12,9 @@ const userSchema = new mongoose.Schema({
     postalCode: String,
     country: String
   },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  resetToken: String,
+  resetTokenExpiry: Date
 });
 
 module.exports = mongoose.model('User', userSchema);

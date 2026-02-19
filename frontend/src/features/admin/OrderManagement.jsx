@@ -48,6 +48,8 @@ const OrderManagement = () => {
     };
 
     const handleStatusChange = (order) => {
+        console.log("Order :", order);
+        
         setSelectedOrder(order);
         setNewStatus(order.status);
         setShowModal(true);
@@ -72,17 +74,16 @@ const OrderManagement = () => {
 
     const getStatusColor = (status) => {
         const colors = {
-            'placed': 'success',
             'pending': 'warning',
             'processing': 'info',
-            'completed': 'primary',
+            'completed': 'success',
             'cancelled': 'danger'
         };
         return colors[status] || 'secondary';
     };
 
     const getStatusOptions = () => {
-        const statuses = ['placed', 'processing', 'completed', 'cancelled'];
+        const statuses = ['pending', 'processing', 'completed', 'cancelled'];
         return statuses.filter(status => status !== selectedOrder?.status);
     };
 

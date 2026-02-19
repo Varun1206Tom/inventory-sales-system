@@ -76,9 +76,11 @@ const ProductCatalog = () => {
     useEffect(() => {
         fetchProducts();
         loadCartFromStorage();
-        loadWishlistFromStorage();
+        if (accessToken) {
+            fetchWishlist();
+        }
         loadRecentlyViewed();
-    }, []);
+    }, [accessToken]);
 
     useEffect(() => {
         filterAndSortProducts();
@@ -119,10 +121,16 @@ const ProductCatalog = () => {
         }
     };
 
-    const loadWishlistFromStorage = () => {
-        const savedWishlist = localStorage.getItem('wishlist');
-        if (savedWishlist) {
-            setWishlist(JSON.parse(savedWishlist));
+    const fetchWishlist = async () => {
+        if (!accessToken) return;
+        try {
+            const res = await API.get('/wishlist');
+            // Extract products from wishlist items
+            const products = res.data.products?.map(item => item.product) || [];
+            setWishlist(products);
+        } catch (err) {
+            console.error('Failed to fetch wishlist:', err.response?.data || err.message);
+            // Silently fail - wishlist is optional
         }
     };
 
@@ -180,12 +188,44 @@ const ProductCatalog = () => {
     };
 
     const addToCart = async (product) => {
+        // Guest user: add to localStorage cart (no API call)
         if (!accessToken) {
-            setPendingProduct(product);
-            setShowLoginPopup(true);
+            const currentCart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const existingItemIndex = currentCart.findIndex(
+                item => item.product?._id === product._id || item.product === product._id
+            );
+
+            let updatedCart;
+            if (existingItemIndex >= 0) {
+                // Item exists, increment quantity
+                updatedCart = [...currentCart];
+                updatedCart[existingItemIndex].quantity += 1;
+            } else {
+                // New item, add to cart
+                updatedCart = [...currentCart, { product: product, quantity: 1 }];
+            }
+
+            setCartItems(updatedCart);
+            localStorage.setItem('cart', JSON.stringify(updatedCart));
+
+            toast.success(
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ fontSize: '20px' }}>🛒</div>
+                    <div>
+                        <strong>{product.name}</strong> added!
+                    </div>
+                </div>,
+                {
+                    position: "top-right",
+                    autoClose: 2000,
+                }
+            );
+
+            setAddedProduct(product);
             return;
         }
 
+        // Logged-in user: call API
         try {
             const res = await API.post(
                 '/cart/add',
@@ -233,29 +273,37 @@ const ProductCatalog = () => {
         });
     };
 
-    const toggleWishlist = (product) => {
+    const toggleWishlist = async (product) => {
         if (!accessToken) {
             setPendingProduct(product);
             setShowLoginPopup(true);
             return;
         }
 
-        let updatedWishlist;
-        if (wishlist.some(item => item._id === product._id)) {
-            updatedWishlist = wishlist.filter(item => item._id !== product._id);
-            toast.info(`${product.name} removed from wishlist`);
-        } else {
-            updatedWishlist = [...wishlist, product];
-            toast.success(
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Heart size={16} fill="#ff6b6b" color="#ff6b6b" />
-                    <span>{product.name} added!</span>
-                </div>,
-                { icon: false, autoClose: 1500 }
-            );
+        const isInWishlist = wishlist.some(item => item._id === product._id);
+
+        try {
+            if (isInWishlist) {
+                // Remove from wishlist
+                await API.delete(`/wishlist/remove/${product._id}`);
+                setWishlist(wishlist.filter(item => item._id !== product._id));
+                toast.info(`${product.name} removed from wishlist`);
+            } else {
+                // Add to wishlist
+                await API.post('/wishlist/add', { productId: product._id });
+                setWishlist([...wishlist, product]);
+                toast.success(
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Heart size={16} fill="#ff6b6b" color="#ff6b6b" />
+                        <span>{product.name} added!</span>
+                    </div>,
+                    { icon: false, autoClose: 1500 }
+                );
+            }
+        } catch (err) {
+            console.error('Failed to update wishlist:', err.response?.data || err.message);
+            toast.error(err.response?.data?.message || 'Failed to update wishlist');
         }
-        setWishlist(updatedWishlist);
-        localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
     };
 
     const handleProductClick = (product) => {
@@ -1350,7 +1398,7 @@ const ProductCatalog = () => {
                 </div>
 
                 {/* Login Popup Modal */}
-                {showLoginPopup && (
+                {/* {showLoginPopup && (
                     <div style={styles.modalOverlay}>
                         <div style={styles.modalContent}>
                             <div style={styles.modalIcon}>🔐</div>
@@ -1377,7 +1425,7 @@ const ProductCatalog = () => {
                             </div>
                         </div>
                     </div>
-                )}
+                )} */}
             </div>
         </div>
     );

@@ -6,7 +6,15 @@ const authMiddleware = async (req, res, next) => {
   try {
     // Get token from header
     let token = req.headers.authorization;
-    if (!token) return res.status(401).json({ message: "No token provided" });
+    if (!token) {
+      // Check if this is an order placement request for better error message
+      const isOrderPlacement = req.path.includes('/orders/place') || req.path.includes('/orders') && req.method === 'POST';
+      return res.status(401).json({ 
+        message: isOrderPlacement 
+          ? "Please login to place an order" 
+          : "Authentication required. Please login to continue"
+      });
+    }
 
     // Remove "Bearer " if present
     if (token.startsWith("Bearer ")) token = token.slice(7, token.length);

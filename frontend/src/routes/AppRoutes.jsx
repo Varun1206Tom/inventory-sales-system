@@ -6,10 +6,15 @@ import CustomerDashboard from '../features/customer/CustomerDashboard';
 import ProtectedRoute from './ProtectedRoute';
 import Register from '../features/auth/Register';
 import LandingPage from '../features/auth/LandingPage';
+import ForgotPassword from '../features/auth/ForgotPassword';
+import ResetPassword from '../features/auth/ResetPassword';
 import ProductCatalog from '../features/customer/ProductCatalog';
+import ProductDetail from '../features/customer/ProductDetail';
 import Cart from '../features/customer/Cart';
 import SuccessScreen from '../features/customer/SuccessScreen';
 import MyOrders from '../features/customer/MyOrders';
+import Wishlist from '../features/customer/Wishlist';
+import Profile from '../features/customer/Profile';
 import AdminSalesReport from '../features/admin/SalesReport';
 import SalesHistory from '../features/staff/SalesHistory';
 
@@ -17,9 +22,13 @@ export default function AppRoutes() {
     return (
         <Routes>
             <Route path="/login" element={<LandingPage />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/" element={<ProductCatalog />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/register" element={<Register />} />
             <Route path="/success" element={<SuccessScreen />} />
+            <Route path="/customer/cart" element={<Cart />} />
 
             <Route path="/admin" element={
                 <ProtectedRoute allowedRole="admin">
@@ -63,15 +72,27 @@ export default function AppRoutes() {
                 </ProtectedRoute>
             } />
 
-            <Route path="/customer/cart" element={
+            {/* <Route path="/customer/cart" element={
                 <ProtectedRoute allowedRole="customer">
                     <Cart />
                 </ProtectedRoute>
-            } />
+            } /> */}
 
             <Route path="/customer/orders" element={
                 <ProtectedRoute allowedRole="customer">
                     <MyOrders />
+                </ProtectedRoute>
+            } />
+
+            <Route path="/customer/wishlist" element={
+                <ProtectedRoute allowedRole="customer">
+                    <Wishlist />
+                </ProtectedRoute>
+            } />
+
+            <Route path="/customer/profile" element={
+                <ProtectedRoute allowedRole="customer">
+                    <Profile />
                 </ProtectedRoute>
             } />
         </Routes>

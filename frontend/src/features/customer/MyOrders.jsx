@@ -60,18 +60,24 @@ const MyOrders = () => {
         }
     };
 
+    // Helper to normalize old statuses to standard ones
+    const normalizeStatus = (status) => {
+        if (!status) return 'pending';
+        const lower = status.toLowerCase();
+        // Map old statuses to new standard
+        if (lower === 'placed' || lower === 'confirmed') return 'pending';
+        if (lower === 'shipped' || lower === 'delivered') return 'completed';
+        return lower; // Return as-is if already standard
+    };
+
     const getStatusIcon = (status) => {
-        switch(status?.toLowerCase()) {
-            case 'placed':
-            case 'confirmed':
-                return <CheckCircle size={16} className="me-1" />;
+        const normalized = normalizeStatus(status);
+        switch(normalized) {
             case 'pending':
                 return <Clock size={16} className="me-1" />;
             case 'processing':
                 return <Truck size={16} className="me-1" />;
-            case 'shipped':
-                return <Package size={16} className="me-1" />;
-            case 'delivered':
+            case 'completed':
                 return <CheckCircle size={16} className="me-1" />;
             case 'cancelled':
                 return <XCircle size={16} className="me-1" />;
@@ -81,22 +87,18 @@ const MyOrders = () => {
     };
 
     const getStatusColor = (status) => {
-        switch(status?.toLowerCase()) {
-            case 'placed':
-            case 'confirmed':
-                return { bg: '#e3f2fd', color: '#1976d2', text: 'Order Placed' };
+        const normalized = normalizeStatus(status);
+        switch(normalized) {
             case 'pending':
                 return { bg: '#fff3e0', color: '#f57c00', text: 'Pending' };
             case 'processing':
                 return { bg: '#e8f5e8', color: '#388e3c', text: 'Processing' };
-            case 'shipped':
-                return { bg: '#e1f5fe', color: '#0288d1', text: 'Shipped' };
-            case 'delivered':
-                return { bg: '#e8f5e9', color: '#2e7d32', text: 'Delivered' };
+            case 'completed':
+                return { bg: '#e8f5e9', color: '#2e7d32', text: 'Completed' };
             case 'cancelled':
                 return { bg: '#ffebee', color: '#d32f2f', text: 'Cancelled' };
             default:
-                return { bg: '#f5f5f5', color: '#616161', text: status };
+                return { bg: '#f5f5f5', color: '#616161', text: normalized || status };
         }
     };
 
@@ -123,23 +125,22 @@ const MyOrders = () => {
     };
 
     const getOrderProgress = (status) => {
+        const normalized = normalizeStatus(status);
         const progress = {
-            'placed': 25,
-            'confirmed': 25,
-            'pending': 15,
+            'pending': 25,
             'processing': 50,
-            'shipped': 75,
-            'delivered': 100,
+            'completed': 100,
             'cancelled': 0
         };
-        return progress[status?.toLowerCase()] || 0;
+        return progress[normalized] || 0;
     };
 
     const getEstimatedDelivery = (order) => {
-        if (order.status?.toLowerCase() === 'delivered') {
-            return 'Delivered';
+        const normalized = normalizeStatus(order.status);
+        if (normalized === 'completed') {
+            return 'Completed';
         }
-        if (order.status?.toLowerCase() === 'cancelled') {
+        if (normalized === 'cancelled') {
             return 'Cancelled';
         }
         
@@ -157,17 +158,16 @@ const MyOrders = () => {
     };
 
     const getOrderTimeline = (order) => {
-        const status = order.status?.toLowerCase();
+        const normalized = normalizeStatus(order.status);
         const timeline = [
-            { status: 'Order Placed', completed: ['placed', 'confirmed', 'processing', 'shipped', 'delivered'].includes(status), date: order.createdAt },
-            { status: 'Processing', completed: ['processing', 'shipped', 'delivered'].includes(status), date: order.updatedAt },
-            { status: 'Shipped', completed: ['shipped', 'delivered'].includes(status), date: null },
-            { status: 'Delivered', completed: status === 'delivered', date: null }
+            { status: 'Pending', completed: ['pending', 'processing', 'completed'].includes(normalized), date: order.createdAt },
+            { status: 'Processing', completed: ['processing', 'completed'].includes(normalized), date: order.updatedAt },
+            { status: 'Completed', completed: normalized === 'completed', date: order.updatedAt }
         ];
         
-        if (status === 'cancelled') {
+        if (normalized === 'cancelled') {
             return [
-                { status: 'Order Placed', completed: true, date: order.createdAt },
+                { status: 'Pending', completed: true, date: order.createdAt },
                 { status: 'Cancelled', completed: true, date: order.updatedAt, cancelled: true }
             ];
         }
@@ -224,7 +224,7 @@ const MyOrders = () => {
     }
 
     return (
-        <div style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+        <div style={{ minHeight: '100vh', backgroundColor: '#eef7ff' }}>
             <AppNavbar />
             <div style={{ maxWidth: '900px', margin: '20px auto', padding: '0 15px' }}>
                 {/* Header with Stats */}
@@ -509,9 +509,11 @@ const MyOrders = () => {
                                     {showTimeline[order._id] && (
                                         <div style={{ 
                                             padding: '15px', 
-                                            background: '#f8f9fa',
+                                            // background: '#f8f9fa',
+                                            background: '#cbe6ff',
                                             borderTop: '1px solid #e9ecef',
-                                            borderBottom: '1px solid #e9ecef'
+                                            borderBottom: '1px solid #e9ecef',
+                                            opacity: '80%',
                                         }}>
                                             <h6 style={{ fontSize: '13px', fontWeight: '600', marginBottom: '12px' }}>
                                                 Order Timeline
@@ -569,6 +571,28 @@ const MyOrders = () => {
                                                     </div>
                                                 ))}
                                             </div>
+                                            {order.statusHistory?.length > 0 && (
+                                                <>
+                                                    <h6 style={{ fontSize: '13px', fontWeight: '600', marginTop: '16px', marginBottom: '8px' }}>
+                                                        Status history
+                                                    </h6>
+                                                    <div style={{ fontSize: '12px', color: '#6c757d' }}>
+                                                        {order.statusHistory.map((entry, i) => (
+                                                            <div key={i} className="d-flex justify-content-between align-items-center py-1">
+                                                                <div>
+                                                                    <span className="text-capitalize">{entry.status}</span>
+                                                                    {entry.updatedByName && (
+                                                                        <span className="ms-2 text-muted" style={{ fontSize: '11px' }}>
+                                                                            by {entry.updatedByName}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <span>{entry.updatedAt ? formatDate(entry.updatedAt) + ' ' + formatTime(entry.updatedAt) : '—'}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                     )}
 

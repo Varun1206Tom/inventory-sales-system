@@ -1,6 +1,23 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
+const mongoose = require('mongoose');
+
+// Helper function to get updatedBy info (handles admin case)
+const getUpdatedByInfo = (user) => {
+    const userId = user.id || user._id;
+    // Check if it's the hardcoded admin (not a valid ObjectId)
+    if (userId === "admin-id" || !mongoose.Types.ObjectId.isValid(userId)) {
+        return {
+            updatedBy: null,
+            updatedByName: user.name || user.email || "Admin"
+        };
+    }
+    return {
+        updatedBy: userId,
+        updatedByName: user.name || user.email || null
+    };
+};
 
 // Stats for dashboard
 exports.getStaffStats = async (req, res) => {
@@ -55,7 +72,7 @@ exports.getRecentOrders = async (req, res) => {
     }
 };
 
-// Process order (mark as processing/completed, deduct stock)
+// Process order (mark as processing/completed). Stock was already deducted when order was placed.
 exports.processOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -65,17 +82,27 @@ exports.processOrder = async (req, res) => {
         if (!order) return res.status(404).json({ message: "Order not found" });
 
         if (status === 'completed') {
+            // Verify stock still sufficient (no double-deduction; stock was taken at place order)
             for (const item of order.items) {
                 const product = await Product.findById(item.product._id);
-                if (product.stock < item.quantity) {
-                    return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+                if (!product || product.stock < item.quantity) {
+                    return res.status(400).json({
+                        message: product
+                            ? `Insufficient stock for ${product.name}`
+                            : 'Product not found'
+                    });
                 }
-                product.stock -= item.quantity;
-                await product.save();
             }
         }
 
+        const updatedByInfo = getUpdatedByInfo(req.user);
         order.status = status;
+        order.statusHistory = order.statusHistory || [];
+        order.statusHistory.push({ 
+            status, 
+            updatedBy: updatedByInfo.updatedBy,
+            updatedByName: updatedByInfo.updatedByName
+        });
         await order.save();
 
         res.json({ message: `Order ${status}`, order });
@@ -122,6 +149,7 @@ exports.getAllOrders = async (req, res) => {
             items: o.items,
             totalAmount: o.totalAmount,
             status: o.status,
+            statusHistory: o.statusHistory || [],
             createdAt: o.createdAt
         }));
 
@@ -141,7 +169,14 @@ exports.updateOrderStatus = async (req, res) => {
         const order = await Order.findById(orderId);
         if (!order) return res.status(404).json({ message: "Order not found" });
 
+        const updatedByInfo = getUpdatedByInfo(req.user);
         order.status = status;
+        order.statusHistory = order.statusHistory || [];
+        order.statusHistory.push({ 
+            status, 
+            updatedBy: updatedByInfo.updatedBy,
+            updatedByName: updatedByInfo.updatedByName
+        });
         await order.save();
 
         res.json({ message: `Order status updated to ${status}`, order });

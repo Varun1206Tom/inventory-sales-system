@@ -7,6 +7,7 @@ const productSchema = new mongoose.Schema({
     discount: { type: Number, default: 0 }, // percentage
     productTag: { type: String, default: '' },
     stock: { type: Number, default: 0 },
+    lowStockThreshold: { type: Number, default: 5 }, // alert when stock <= this
     description: String,
     category: { type: String, required: true },
     image: { type: String, default: '' } // This will store the filename/path

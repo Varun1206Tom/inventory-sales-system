@@ -16,11 +16,11 @@ const LandingPage = () => {
         role: 'customer'
     });
 
-    // Demo credentials for quick access
+    // Demo credentials for quick access (admin matches backend hardcoded admin)
     const demoAccounts = {
         customer: { email: 'john@example.com', password: '123456' },
         staff: { email: 'staff@example.com', password: '123456' },
-        admin: { email: 'admin@example.com', password: '123456' }
+        admin: { email: 'admin@gmail.com', password: 'admin' }
     };
 
     const handleSubmit = async (e) => {
@@ -51,6 +51,67 @@ const LandingPage = () => {
                 const role = res.data.user.role;
                 toast.success(`Welcome back!`);
 
+                // Cart merge for customers: merge guest cart (localStorage) into server cart with stock validation
+                if (role === 'customer') {
+                    try {
+                        const savedCart = localStorage.getItem('cart');
+                        if (savedCart) {
+                            const parsed = JSON.parse(savedCart);
+                            const items = Array.isArray(parsed) ? parsed : (parsed?.items || []);
+                            if (items.length > 0) {
+                                const toMerge = items.map((i) => ({
+                                    productId: typeof i.product === 'object' ? i.product?._id : i.product,
+                                    quantity: i.quantity || 1
+                                })).filter((i) => i.productId);
+                                if (toMerge.length > 0) {
+                                    const mergeRes = await API.post('/cart/merge', { items: toMerge });
+                                    if (mergeRes.data.skipped?.length) {
+                                        toast.info(`Cart merged. Some items were limited by stock.`);
+                                    } else {
+                                        toast.info(`Cart merged with ${mergeRes.data.merged || toMerge.length} item(s).`);
+                                    }
+                                    localStorage.removeItem('cart');
+                                }
+                            }
+                        }
+
+                        // Wishlist merge: merge localStorage wishlist to backend (backward compatibility)
+                        const savedWishlist = localStorage.getItem('wishlist');
+                        if (savedWishlist) {
+                            try {
+                                const parsed = JSON.parse(savedWishlist);
+                                const products = Array.isArray(parsed) ? parsed : [];
+                                if (products.length > 0) {
+                                    const productIds = products
+                                        .map(p => typeof p === 'object' ? p?._id : p)
+                                        .filter(Boolean);
+                                    
+                                    // Add each product to backend wishlist (API handles duplicates)
+                                    let merged = 0;
+                                    for (const productId of productIds) {
+                                        try {
+                                            await API.post('/wishlist/add', { productId });
+                                            merged++;
+                                        } catch (err) {
+                                            // Ignore "already in wishlist" errors
+                                            if (err.response?.status !== 400) {
+                                                console.warn('Failed to merge wishlist item:', err);
+                                            }
+                                        }
+                                    }
+                                    if (merged > 0) {
+                                        localStorage.removeItem('wishlist');
+                                    }
+                                }
+                            } catch (wishlistErr) {
+                                console.warn('Wishlist merge failed:', wishlistErr);
+                            }
+                        }
+                    } catch (mergeErr) {
+                        console.warn('Cart merge failed:', mergeErr);
+                    }
+                }
+
                 // Redirect based on role
                 if (role === 'admin') navigate('/admin');
                 else if (role === 'staff') navigate('/staff');
@@ -80,7 +141,7 @@ const LandingPage = () => {
         const account = demoAccounts[role];
         setForm({ ...form, email: account.email, password: account.password });
         setSelectedRole(role);
-        
+
         // Auto submit
         setTimeout(() => {
             const form = document.getElementById('login-form');
@@ -465,26 +526,140 @@ const LandingPage = () => {
                 </div>
 
                 {/* Right Panel - Auth Form */}
+                {/* Right Panel - Auth Form */}
                 <div style={styles.rightPanel}>
                     <h2 style={styles.title}>
                         {isLogin ? 'Welcome!' : 'Create Customer Account'}
                     </h2>
                     <p style={styles.subtitle}>
-                        {isLogin 
-                            ? `Sign in as ${selectedRole}` 
+                        {isLogin
+                            ? `Sign in as ${selectedRole}`
                             : 'Register to start shopping'
                         }
                     </p>
 
+                    {/* Enhanced Browse Products Option */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: '24px',
+                        padding: '12px 16px',
+                        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                        borderRadius: '12px',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}>
+                        {/* Decorative accent line */}
+                        <div style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: '4px',
+                            background: `linear-gradient(180deg, ${roleColors[selectedRole]} 0%, ${roleColors[selectedRole]}80 100%)`,
+                            borderRadius: '4px 0 0 4px'
+                        }} />
+
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            marginLeft: '8px'
+                        }}>
+                            <span style={{
+                                fontSize: '20px',
+                                filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.1))'
+                            }}>
+                                🛍️
+                            </span>
+                            <div style={{
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}>
+                                <span style={{
+                                    color: '#1e293b',
+                                    fontSize: '14px',
+                                    fontWeight: '500'
+                                }}>
+                                    Not ready to login?
+                                </span>
+                                <span style={{
+                                    color: '#64748b',
+                                    fontSize: '12px'
+                                }}>
+                                    Explore our products first
+                                </span>
+                            </div>
+                        </div>
+
+                        <a
+                            onClick={() => navigate('/')}
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '8px 16px',
+                                background: 'white',
+                                color: roleColors[selectedRole],
+                                textDecoration: 'none',
+                                fontWeight: '600',
+                                fontSize: '14px',
+                                borderRadius: '8px',
+                                border: `1px solid ${roleColors[selectedRole]}30`,
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.transform = 'translateX(4px)';
+                                e.target.style.background = roleColors[selectedRole];
+                                e.target.style.color = 'white';
+                                e.target.style.boxShadow = `0 4px 8px ${roleColors[selectedRole]}40`;
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateX(0)';
+                                e.target.style.background = 'white';
+                                e.target.style.color = roleColors[selectedRole];
+                                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.02)';
+                            }}
+                        >
+                            <span>Browse Products</span>
+                            <span style={{
+                                fontSize: '18px',
+                                lineHeight: 1,
+                                transition: 'transform 0.2s ease'
+                            }}>→</span>
+                        </a>
+                    </div>
+
                     {/* Registration Notice for non-customer roles */}
                     {!isLogin && selectedRole !== 'customer' && (
-                        <div style={styles.registrationNotice}>
-                            <span>ℹ️</span>
-                            <span>
-                                {selectedRole === 'staff' 
-                                    ? 'Staff accounts can only be created by administrators'
-                                    : 'Admin accounts can only be created by super admin'
-                                }
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            backgroundColor: '#fff3cd',
+                            border: '1px solid #ffeeba',
+                            borderRadius: '10px',
+                            padding: '14px 16px',
+                            marginBottom: '24px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                        }}>
+                            <span style={{
+                                fontSize: '18px'
+                            }}>ℹ️</span>
+                            <span style={{
+                                color: '#856404',
+                                fontSize: '14px',
+                                lineHeight: 1.5,
+                                flex: 1
+                            }}>
+                                {selectedRole === 'staff'
+                                    ? 'Staff accounts can only be created by administrators. Please contact your admin for access.'
+                                    : 'Admin accounts can only be created by super admin. Please use your existing credentials.'}
                             </span>
                         </div>
                     )}
@@ -535,15 +710,46 @@ const LandingPage = () => {
                             />
                         </div>
 
+                        <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+                            <a href="/forgot-password" style={{ color: roleColors[selectedRole], textDecoration: 'none', fontSize: '14px' }}>
+                                Forgot Password?
+                            </a>
+                        </div>
+
                         <button
                             type="submit"
-                            style={styles.button(
-                                loading, 
-                                !isLogin && selectedRole !== 'customer' 
-                                    ? '#a0aec0' // Grey out button for non-customer registration
-                                    : roleColors[selectedRole]
-                            )}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                backgroundColor: !isLogin && selectedRole !== 'customer'
+                                    ? '#a0aec0'
+                                    : roleColors[selectedRole],
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '10px',
+                                fontSize: '16px',
+                                fontWeight: '600',
+                                cursor: (loading || (!isLogin && selectedRole !== 'customer')) ? 'not-allowed' : 'pointer',
+                                opacity: (loading || (!isLogin && selectedRole !== 'customer')) ? 0.7 : 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '8px',
+                                transition: 'all 0.2s ease',
+                                boxShadow: `0 4px 12px ${roleColors[selectedRole]}40`,
+                                marginTop: '8px'
+                            }}
                             disabled={loading || (!isLogin && selectedRole !== 'customer')}
+                            onMouseEnter={(e) => {
+                                if (!loading && !(!isLogin && selectedRole !== 'customer')) {
+                                    e.target.style.transform = 'translateY(-2px)';
+                                    e.target.style.boxShadow = `0 6px 16px ${roleColors[selectedRole]}60`;
+                                }
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.transform = 'translateY(0)';
+                                e.target.style.boxShadow = `0 4px 12px ${roleColors[selectedRole]}40`;
+                            }}
                         >
                             {loading ? (
                                 <>
@@ -551,9 +757,9 @@ const LandingPage = () => {
                                     {isLogin ? 'Signing in...' : 'Creating...'}
                                 </>
                             ) : (
-                                isLogin 
-                                    ? `Sign in as ${selectedRole}` 
-                                    : selectedRole === 'customer' 
+                                isLogin
+                                    ? `Sign in as ${selectedRole}`
+                                    : selectedRole === 'customer'
                                         ? 'Create Account'
                                         : 'Login Required'
                             )}
@@ -561,25 +767,57 @@ const LandingPage = () => {
                     </form>
 
                     {/* Info Box */}
-                    <div style={styles.infoBox}>
-                        <span>ℹ️</span>
-                        <span>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        backgroundColor: '#e6f3ff',
+                        border: '1px solid #b8e0ff',
+                        borderRadius: '10px',
+                        padding: '10px 13px',
+                        marginTop: '24px',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+                    }}>
+                        <span style={{
+                            fontSize: '18px'
+                        }}>ℹ️</span>
+                        <span style={{
+                            color: '#004085',
+                            fontSize: '12px',
+                            lineHeight: 1.5,
+                            flex: 1
+                        }}>
                             {selectedRole === 'customer' && (
-                                isLogin 
-                                    ? 'Sign in to your customer account'
-                                    : 'Create a customer account to start shopping'
+                                isLogin
+                                    ? 'Sign in to your customer account to access your orders and wishlist'
+                                    : 'Create a customer account to enjoy personalized shopping experience'
                             )}
-                            {selectedRole === 'staff' && 'Staff members: Please login with your credentials'}
-                            {selectedRole === 'admin' && 'Administrators: Please login with your credentials'}
+                            {selectedRole === 'staff' && 'Staff members: Access your dashboard and manage operations'}
+                            {selectedRole === 'admin' && 'Administrators: Manage products, orders, and staff accounts'}
                         </span>
                     </div>
 
                     {/* Toggle - Only show for customer role */}
                     {selectedRole === 'customer' && (
-                        <div style={styles.toggleText}>
-                            {isLogin ? "New customer?" : "Already have an account?"}
+                        <div style={{
+                            textAlign: 'center',
+                            marginTop: '20px',
+                            color: '#64748b',
+                            fontSize: '14px',
+                            padding: '8px',
+                            borderTop: '1px solid #e2e8f0'
+                        }}>
+                            {isLogin ? "New to our store?" : "Already have an account?"}
                             <span
-                                style={styles.toggleLink(roleColors.customer)}
+                                style={{
+                                    color: roleColors.customer,
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    marginLeft: '6px',
+                                    textDecoration: 'underline',
+                                    textDecorationColor: `${roleColors.customer}40`,
+                                    textUnderlineOffset: '2px'
+                                }}
                                 onClick={() => {
                                     setIsLogin(!isLogin);
                                     if (!isLogin) {
@@ -587,15 +825,43 @@ const LandingPage = () => {
                                     }
                                     setSelectedRole('customer');
                                 }}
+                                onMouseEnter={(e) => {
+                                    e.target.style.textDecorationColor = roleColors.customer;
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.target.style.textDecorationColor = `${roleColors.customer}40`;
+                                }}
                             >
-                                {isLogin ? ' Register here' : ' Sign in'}
+                                {isLogin ? 'Create an account' : 'Sign in'}
                             </span>
                         </div>
                     )}
 
                     {/* Footer */}
-                    <div style={styles.footer}>
-                        By continuing, you agree to our Terms
+                    <div style={{
+                        marginTop: '20px',
+                        textAlign: 'center',
+                        color: '#94a3b8',
+                        fontSize: '12px'
+                    }}>
+                        By continuing, you agree to our{' '}
+                        <a style={{
+                            color: roleColors[selectedRole],
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            borderBottom: `1px dotted ${roleColors[selectedRole]}60`
+                        }}>
+                            Terms of Service
+                        </a>
+                        {' '}and{' '}
+                        <a style={{
+                            color: roleColors[selectedRole],
+                            cursor: 'pointer',
+                            textDecoration: 'none',
+                            borderBottom: `1px dotted ${roleColors[selectedRole]}60`
+                        }}>
+                            Privacy Policy
+                        </a>
                     </div>
                 </div>
             </div>

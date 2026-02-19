@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../../components/AppNavbar';
 import { Card, Col, Container, Row, Badge, Button, Table, ProgressBar } from 'react-bootstrap';
-import { 
-    ShoppingBag, 
-    Package, 
-    TrendingUp, 
-    Clock, 
-    CheckCircle, 
+import {
+    ShoppingBag,
+    Package,
+    TrendingUp,
+    Clock,
+    CheckCircle,
     XCircle,
     Eye,
     Search,
@@ -51,9 +51,11 @@ import {
     Droplets
 } from 'lucide-react';
 import API from '../../services/axios';
+import UsersReport from '../admin/UsersReport';
 
 const StaffDashboard = () => {
     const navigate = useNavigate();
+    const [tab, setTab] = useState('dashboard');
     const [stats, setStats] = useState({
         pendingOrders: 0,
         processingOrders: 0,
@@ -109,7 +111,7 @@ const StaffDashboard = () => {
         };
         const config = statusConfig[status] || statusConfig.pending;
         const Icon = config.icon;
-        
+
         return (
             <span style={{
                 backgroundColor: config.bg,
@@ -501,16 +503,16 @@ const StaffDashboard = () => {
     return (
         <div style={styles.container}>
             <Navbar />
-            
+
             <div style={styles.content}>
                 {/* Header */}
                 <div style={styles.header}>
                     <h1 style={styles.pageTitle}>Staff Dashboard</h1>
                     <p style={styles.pageSubtitle}>Welcome back! Here's what's happening today.</p>
-                    
+
                     {/* Timeframe Tabs */}
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        <button 
+                        <button
                             style={{
                                 ...styles.button,
                                 background: timeframe === 'today' ? '#0d6efd' : 'white',
@@ -521,7 +523,7 @@ const StaffDashboard = () => {
                         >
                             Today
                         </button>
-                        <button 
+                        <button
                             style={{
                                 ...styles.button,
                                 background: timeframe === 'week' ? '#0d6efd' : 'white',
@@ -532,7 +534,7 @@ const StaffDashboard = () => {
                         >
                             This Week
                         </button>
-                        <button 
+                        <button
                             style={{
                                 ...styles.button,
                                 background: timeframe === 'month' ? '#0d6efd' : 'white',
@@ -543,7 +545,7 @@ const StaffDashboard = () => {
                         >
                             This Month
                         </button>
-                        <button 
+                        <button
                             style={{
                                 ...styles.button,
                                 background: 'white',
@@ -562,296 +564,329 @@ const StaffDashboard = () => {
                     </div>
                 </div>
 
-                {/* Stats Grid */}
-                <div style={styles.statsGrid}>
-                    <div style={styles.statCard}>
-                        <div style={styles.statIcon('#f57c00')}>
-                            <Clock size={20} />
-                        </div>
-                        <div style={styles.statValue}>{stats.pendingOrders}</div>
-                        <div style={styles.statLabel}>Pending Orders</div>
-                    </div>
-                    
-                    <div style={styles.statCard}>
-                        <div style={styles.statIcon('#0d6efd')}>
-                            <RefreshCw size={20} />
-                        </div>
-                        <div style={styles.statValue}>{stats.processingOrders}</div>
-                        <div style={styles.statLabel}>Processing</div>
-                    </div>
-                    
-                    <div style={styles.statCard}>
-                        <div style={styles.statIcon('#198754')}>
-                            <CheckCircle size={20} />
-                        </div>
-                        <div style={styles.statValue}>{stats.completedOrders}</div>
-                        <div style={styles.statLabel}>Completed</div>
-                    </div>
-                    
-                    <div style={styles.statCard}>
-                        <div style={styles.statIcon('#0d6efd')}>
-                            <DollarSign size={20} />
-                        </div>
-                        <div style={styles.statValue}>₹{stats.totalSales?.toLocaleString() || 0}</div>
-                        <div style={styles.statLabel}>Total Sales</div>
-                    </div>
-                    
-                    <div style={styles.statCard}>
-                        <div style={styles.statIcon('#6f42c1')}>
-                            <Users size={20} />
-                        </div>
-                        <div style={styles.statValue}>{stats.totalCustomers}</div>
-                        <div style={styles.statLabel}>Customers</div>
-                    </div>
-                    
-                    <div style={styles.statCard}>
-                        <div style={styles.statIcon('#dc3545')}>
-                            <AlertCircle size={20} />
-                        </div>
-                        <div style={styles.statValue}>{stats.lowStockItems}</div>
-                        <div style={styles.statLabel}>Low Stock</div>
-                    </div>
+                {/* Main Tabs */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
+                    <button
+                        style={{
+                            ...styles.button,
+                            background: tab === 'dashboard' ? '#28a745' : 'white',
+                            color: tab === 'dashboard' ? 'white' : '#6c757d',
+                            border: '1px solid #dee2e6'
+                        }}
+                        onClick={() => setTab('dashboard')}
+                    >
+                        📊 Dashboard
+                    </button>
+                    <button
+                        style={{
+                            ...styles.button,
+                            background: tab === 'users' ? '#28a745' : 'white',
+                            color: tab === 'users' ? 'white' : '#6c757d',
+                            border: '1px solid #dee2e6'
+                        }}
+                        onClick={() => setTab('users')}
+                    >
+                        👤 Users
+                    </button>
                 </div>
 
-                {/* Main Grid - Two Column Layout */}
-                <div style={styles.mainGrid}>
-                    {/* Left Column */}
-                    <div style={styles.leftColumn}>
-                        {/* Quick Actions */}
-                        <div style={styles.quickActionsGrid}>
-                            {/* Process Orders Card */}
-                            <div style={styles.actionCard}>
-                                <div style={styles.actionHeader}>
-                                    <div>
-                                        <h3 style={styles.actionTitle}>Process Orders</h3>
-                                        <p style={styles.actionDesc}>Manage pending and active orders</p>
-                                    </div>
-                                    <div style={styles.actionIcon('#0d6efd', '#e3f2fd')}>
-                                        <Package size={20} />
-                                    </div>
+                {tab === 'dashboard' && (
+                    <>
+
+                        {/* Stats Grid */}
+                        <div style={styles.statsGrid}>
+                            <div style={styles.statCard}>
+                                <div style={styles.statIcon('#f57c00')}>
+                                    <Clock size={20} />
                                 </div>
-                                
-                                <div style={styles.progressSection}>
-                                    <div style={styles.progressItem}>
-                                        <div style={styles.progressHeader}>
-                                            <span style={styles.progressLabel}>Pending Orders</span>
-                                            <span style={styles.progressValue}>{stats.pendingOrders}</span>
-                                        </div>
-                                        <div style={styles.progressBar}>
-                                            <div style={styles.progressFill('#f57c00', (stats.pendingOrders / (stats.pendingOrders + stats.processingOrders + stats.completedOrders || 1)) * 100)} />
-                                        </div>
-                                    </div>
-                                    
-                                    <div style={styles.progressItem}>
-                                        <div style={styles.progressHeader}>
-                                            <span style={styles.progressLabel}>Processing</span>
-                                            <span style={styles.progressValue}>{stats.processingOrders}</span>
-                                        </div>
-                                        <div style={styles.progressBar}>
-                                            <div style={styles.progressFill('#0d6efd', (stats.processingOrders / (stats.pendingOrders + stats.processingOrders + stats.completedOrders || 1)) * 100)} />
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <button 
-                                    style={{...styles.button, ...styles.primaryButton, marginTop: '16px'}}
-                                    onClick={() => navigate('/staff/orders')}
-                                >
-                                    View All Orders
-                                </button>
+                                <div style={styles.statValue}>{stats.pendingOrders}</div>
+                                <div style={styles.statLabel}>Pending Orders</div>
                             </div>
-                            
-                            {/* Record Sales Card */}
-                            <div style={styles.actionCard}>
-                                <div style={styles.actionHeader}>
-                                    <div>
-                                        <h3 style={styles.actionTitle}>Record Sales</h3>
-                                        <p style={styles.actionDesc}>Process new sales and payments</p>
-                                    </div>
-                                    <div style={styles.actionIcon('#198754', '#e8f5e9')}>
-                                        <TrendingUp size={20} />
-                                    </div>
+
+                            <div style={styles.statCard}>
+                                <div style={styles.statIcon('#0d6efd')}>
+                                    <RefreshCw size={20} />
                                 </div>
-                                
-                                <div style={styles.salesCard}>
-                                    <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                                        <div style={styles.salesAmount}>₹{stats.totalSales?.toLocaleString() || 0}</div>
-                                        <p style={styles.progressLabel}>Total Sales ({timeframe})</p>
-                                    </div>
-                                    
-                                    <div style={styles.statsRow}>
-                                        <div style={styles.miniStat}>
-                                            <div style={styles.miniStatValue}>{stats.completedOrders}</div>
-                                            <div style={styles.miniStatLabel}>Completed</div>
-                                        </div>
-                                        <div style={styles.miniStat}>
-                                            <div style={styles.miniStatValue}>{stats.pendingOrders}</div>
-                                            <div style={styles.miniStatLabel}>Pending</div>
-                                        </div>
-                                        <div style={styles.miniStat}>
-                                            <div style={styles.miniStatValue}>{stats.lowStockItems}</div>
-                                            <div style={styles.miniStatLabel}>Low Stock</div>
-                                        </div>
-                                    </div>
+                                <div style={styles.statValue}>{stats.processingOrders}</div>
+                                <div style={styles.statLabel}>Processing</div>
+                            </div>
+
+                            <div style={styles.statCard}>
+                                <div style={styles.statIcon('#198754')}>
+                                    <CheckCircle size={20} />
                                 </div>
-                                
-                                <button 
-                                    style={{...styles.button, ...styles.successButton, marginTop: '16px'}}
-                                    onClick={() => navigate('/staff/sales/new')}
-                                >
-                                    New Sale
-                                </button>
+                                <div style={styles.statValue}>{stats.completedOrders}</div>
+                                <div style={styles.statLabel}>Completed</div>
+                            </div>
+
+                            <div style={styles.statCard}>
+                                <div style={styles.statIcon('#0d6efd')}>
+                                    <DollarSign size={20} />
+                                </div>
+                                <div style={styles.statValue}>₹{stats.totalSales?.toLocaleString() || 0}</div>
+                                <div style={styles.statLabel}>Total Sales</div>
+                            </div>
+
+                            <div style={styles.statCard}>
+                                <div style={styles.statIcon('#6f42c1')}>
+                                    <Users size={20} />
+                                </div>
+                                <div style={styles.statValue}>{stats.totalCustomers}</div>
+                                <div style={styles.statLabel}>Customers</div>
+                            </div>
+
+                            <div style={styles.statCard}>
+                                <div style={styles.statIcon('#dc3545')}>
+                                    <AlertCircle size={20} />
+                                </div>
+                                <div style={styles.statValue}>{stats.lowStockItems}</div>
+                                <div style={styles.statLabel}>Low Stock</div>
                             </div>
                         </div>
-                        
-                        {/* Recent Orders Table */}
-                        <div style={styles.tableContainer}>
-                            <div style={styles.tableHeader}>
-                                <h3 style={styles.tableTitle}>Recent Orders</h3>
-                                <div style={styles.searchBox}>
-                                    <Search style={styles.searchIcon} />
-                                    <input 
-                                        type="text" 
-                                        placeholder="Search orders..." 
-                                        style={styles.searchInput}
-                                    />
+
+                        {/* Main Grid - Two Column Layout */}
+                        <div style={styles.mainGrid}>
+                            {/* Left Column */}
+                            <div style={styles.leftColumn}>
+                                {/* Quick Actions */}
+                                <div style={styles.quickActionsGrid}>
+                                    {/* Process Orders Card */}
+                                    <div style={styles.actionCard}>
+                                        <div style={styles.actionHeader}>
+                                            <div>
+                                                <h3 style={styles.actionTitle}>Process Orders</h3>
+                                                <p style={styles.actionDesc}>Manage pending and active orders</p>
+                                            </div>
+                                            <div style={styles.actionIcon('#0d6efd', '#e3f2fd')}>
+                                                <Package size={20} />
+                                            </div>
+                                        </div>
+
+                                        <div style={styles.progressSection}>
+                                            <div style={styles.progressItem}>
+                                                <div style={styles.progressHeader}>
+                                                    <span style={styles.progressLabel}>Pending Orders</span>
+                                                    <span style={styles.progressValue}>{stats.pendingOrders}</span>
+                                                </div>
+                                                <div style={styles.progressBar}>
+                                                    <div style={styles.progressFill('#f57c00', (stats.pendingOrders / (stats.pendingOrders + stats.processingOrders + stats.completedOrders || 1)) * 100)} />
+                                                </div>
+                                            </div>
+
+                                            <div style={styles.progressItem}>
+                                                <div style={styles.progressHeader}>
+                                                    <span style={styles.progressLabel}>Processing</span>
+                                                    <span style={styles.progressValue}>{stats.processingOrders}</span>
+                                                </div>
+                                                <div style={styles.progressBar}>
+                                                    <div style={styles.progressFill('#0d6efd', (stats.processingOrders / (stats.pendingOrders + stats.processingOrders + stats.completedOrders || 1)) * 100)} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            style={{ ...styles.button, ...styles.primaryButton, marginTop: '16px' }}
+                                            onClick={() => navigate('/staff/orders')}
+                                        >
+                                            View All Orders
+                                        </button>
+                                    </div>
+
+                                    {/* Record Sales Card */}
+                                    <div style={styles.actionCard}>
+                                        <div style={styles.actionHeader}>
+                                            <div>
+                                                <h3 style={styles.actionTitle}>Record Sales</h3>
+                                                <p style={styles.actionDesc}>Process new sales and payments</p>
+                                            </div>
+                                            <div style={styles.actionIcon('#198754', '#e8f5e9')}>
+                                                <TrendingUp size={20} />
+                                            </div>
+                                        </div>
+
+                                        <div style={styles.salesCard}>
+                                            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                                                <div style={styles.salesAmount}>₹{stats.totalSales?.toLocaleString() || 0}</div>
+                                                <p style={styles.progressLabel}>Total Sales ({timeframe})</p>
+                                            </div>
+
+                                            <div style={styles.statsRow}>
+                                                <div style={styles.miniStat}>
+                                                    <div style={styles.miniStatValue}>{stats.completedOrders}</div>
+                                                    <div style={styles.miniStatLabel}>Completed</div>
+                                                </div>
+                                                <div style={styles.miniStat}>
+                                                    <div style={styles.miniStatValue}>{stats.pendingOrders}</div>
+                                                    <div style={styles.miniStatLabel}>Pending</div>
+                                                </div>
+                                                <div style={styles.miniStat}>
+                                                    <div style={styles.miniStatValue}>{stats.lowStockItems}</div>
+                                                    <div style={styles.miniStatLabel}>Low Stock</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            style={{ ...styles.button, ...styles.successButton, marginTop: '16px' }}
+                                            onClick={() => navigate('/staff/sales/new')}
+                                        >
+                                            New Sale
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <table style={styles.table}>
-                                <thead>
-                                    <tr>
-                                        <th style={styles.th}>Order ID</th>
-                                        <th style={styles.th}>Customer</th>
-                                        <th style={styles.th}>Items</th>
-                                        <th style={styles.th}>Total</th>
-                                        <th style={styles.th}>Status</th>
-                                        <th style={styles.th}>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {recentOrders.map(order => (
-                                        <tr key={order._id}>
-                                            <td style={styles.td}>
-                                                <span style={styles.orderId}>#{order.orderId}</span>
-                                            </td>
-                                            <td style={styles.td}>
-                                                <span style={styles.customerName}>{order.customerName}</span>
-                                            </td>
-                                            <td style={styles.td}>{order.items?.length || 0} items</td>
-                                            <td style={styles.td}>
-                                                <span style={styles.amount}>₹{order.total?.toLocaleString() || 0}</span>
-                                            </td>
-                                            <td style={styles.td}>{getStatusBadge(order.status)}</td>
-                                            <td style={styles.td}>
-                                                <button 
-                                                    style={styles.viewBtn}
-                                                    onClick={() => navigate(`/staff/orders/${order._id}`)}
-                                                >
-                                                    <Eye size={16} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                            
-                            {recentOrders.length === 0 && (
-                                <div style={{ textAlign: 'center', padding: '40px' }}>
-                                    <Package size={40} color="#adb5bd" style={{ marginBottom: '12px' }} />
-                                    <p style={{ color: '#6c757d', marginBottom: 0 }}>No recent orders found</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    
-                    {/* Right Column */}
-                    <div style={styles.rightColumn}>
-                        {/* Inventory Alerts */}
-                        <div style={styles.alertCard}>
-                            <h3 style={styles.alertTitle}>Inventory Alerts</h3>
-                            
-                            {stats.lowStockItems > 0 ? (
-                                <>
-                                    <div style={styles.alertBox}>
-                                        <AlertCircle style={styles.alertIcon} />
-                                        <div style={styles.alertContent}>
-                                            <h4 style={styles.alertHeading}>{stats.lowStockItems} items low in stock</h4>
-                                            <p style={styles.alertText}>Restock soon to avoid running out</p>
+
+                                {/* Recent Orders Table */}
+                                <div style={styles.tableContainer}>
+                                    <div style={styles.tableHeader}>
+                                        <h3 style={styles.tableTitle}>Recent Orders</h3>
+                                        <div style={styles.searchBox}>
+                                            <Search style={styles.searchIcon} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search orders..."
+                                                style={styles.searchInput}
+                                            />
                                         </div>
                                     </div>
-                                    
-                                    <button 
-                                        style={{...styles.button, ...styles.primaryButton}}
-                                        onClick={() => navigate('/staff/inventory')}
+
+                                    <table style={styles.table}>
+                                        <thead>
+                                            <tr>
+                                                <th style={styles.th}>Order ID</th>
+                                                <th style={styles.th}>Customer</th>
+                                                <th style={styles.th}>Items</th>
+                                                <th style={styles.th}>Total</th>
+                                                <th style={styles.th}>Status</th>
+                                                <th style={styles.th}>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {recentOrders.map(order => (
+                                                <tr key={order._id}>
+                                                    <td style={styles.td}>
+                                                        <span style={styles.orderId}>#{order.orderId}</span>
+                                                    </td>
+                                                    <td style={styles.td}>
+                                                        <span style={styles.customerName}>{order.customerName}</span>
+                                                    </td>
+                                                    <td style={styles.td}>{order.items?.length || 0} items</td>
+                                                    <td style={styles.td}>
+                                                        <span style={styles.amount}>₹{order.total?.toLocaleString() || 0}</span>
+                                                    </td>
+                                                    <td style={styles.td}>{getStatusBadge(order.status)}</td>
+                                                    <td style={styles.td}>
+                                                        <button
+                                                            style={styles.viewBtn}
+                                                            onClick={() => navigate(`/staff/orders/${order._id}`)}
+                                                        >
+                                                            <Eye size={16} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+
+                                    {recentOrders.length === 0 && (
+                                        <div style={{ textAlign: 'center', padding: '40px' }}>
+                                            <Package size={40} color="#adb5bd" style={{ marginBottom: '12px' }} />
+                                            <p style={{ color: '#6c757d', marginBottom: 0 }}>No recent orders found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Right Column */}
+                            <div style={styles.rightColumn}>
+                                {/* Inventory Alerts */}
+                                <div style={styles.alertCard}>
+                                    <h3 style={styles.alertTitle}>Inventory Alerts</h3>
+
+                                    {stats.lowStockItems > 0 ? (
+                                        <>
+                                            <div style={styles.alertBox}>
+                                                <AlertCircle style={styles.alertIcon} />
+                                                <div style={styles.alertContent}>
+                                                    <h4 style={styles.alertHeading}>{stats.lowStockItems} items low in stock</h4>
+                                                    <p style={styles.alertText}>Restock soon to avoid running out</p>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                style={{ ...styles.button, ...styles.primaryButton }}
+                                                onClick={() => navigate('/staff/inventory')}
+                                            >
+                                                View Inventory
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div style={{ textAlign: 'center', padding: '20px' }}>
+                                            <CheckCircle size={40} color="#198754" style={{ marginBottom: '12px' }} />
+                                            <p style={{ color: '#6c757d', marginBottom: 0 }}>All items are well stocked</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Today's Summary */}
+                                <div style={styles.summaryCard}>
+                                    <h3 style={styles.summaryTitle}>Today's Summary</h3>
+
+                                    <div style={styles.summaryItem}>
+                                        <span style={styles.summaryLabel}>Orders Received</span>
+                                        <span style={styles.summaryValue}>{stats.pendingOrders}</span>
+                                    </div>
+                                    <div style={styles.summaryItem}>
+                                        <span style={styles.summaryLabel}>Orders Completed</span>
+                                        <span style={styles.summaryValue}>{stats.completedOrders}</span>
+                                    </div>
+                                    <div style={styles.summaryItem}>
+                                        <span style={styles.summaryLabel}>Revenue Today</span>
+                                        <span style={{ ...styles.summaryValue, color: '#198754' }}>₹{stats.todayRevenue?.toLocaleString() || 0}</span>
+                                    </div>
+                                    <div style={styles.summaryItem}>
+                                        <span style={styles.summaryLabel}>Average Order Value</span>
+                                        <span style={styles.summaryValue}>₹{stats.avgOrderValue?.toLocaleString() || 0}</span>
+                                    </div>
+
+                                    <hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid #e9ecef' }} />
+
+                                    <button
+                                        style={{ ...styles.button, ...styles.outlineButton, width: '100%' }}
+                                        onClick={() => navigate('/staff/sales')}
                                     >
-                                        View Inventory
+                                        View Sales Report
                                     </button>
-                                </>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '20px' }}>
-                                    <CheckCircle size={40} color="#198754" style={{ marginBottom: '12px' }} />
-                                    <p style={{ color: '#6c757d', marginBottom: 0 }}>All items are well stocked</p>
                                 </div>
-                            )}
-                        </div>
-                        
-                        {/* Today's Summary */}
-                        <div style={styles.summaryCard}>
-                            <h3 style={styles.summaryTitle}>Today's Summary</h3>
-                            
-                            <div style={styles.summaryItem}>
-                                <span style={styles.summaryLabel}>Orders Received</span>
-                                <span style={styles.summaryValue}>{stats.pendingOrders}</span>
-                            </div>
-                            <div style={styles.summaryItem}>
-                                <span style={styles.summaryLabel}>Orders Completed</span>
-                                <span style={styles.summaryValue}>{stats.completedOrders}</span>
-                            </div>
-                            <div style={styles.summaryItem}>
-                                <span style={styles.summaryLabel}>Revenue Today</span>
-                                <span style={{...styles.summaryValue, color: '#198754'}}>₹{stats.todayRevenue?.toLocaleString() || 0}</span>
-                            </div>
-                            <div style={styles.summaryItem}>
-                                <span style={styles.summaryLabel}>Average Order Value</span>
-                                <span style={styles.summaryValue}>₹{stats.avgOrderValue?.toLocaleString() || 0}</span>
-                            </div>
-                            
-                            <hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid #e9ecef' }} />
-                            
-                            <button 
-                                style={{...styles.button, ...styles.outlineButton, width: '100%'}}
-                                onClick={() => navigate('/staff/sales')}
-                            >
-                                View Sales Report
-                            </button>
-                        </div>
-                        
-                        {/* Weather Widget */}
-                        <div style={styles.weatherCard}>
-                            <h4 style={styles.weatherTitle}>
-                                <Sun size={16} color="#f57c00" />
-                                Weather
-                            </h4>
-                            
-                            <div style={styles.weatherDisplay}>
-                                <div style={styles.weatherTemp}>{weather.temp}°C</div>
-                                <div style={styles.weatherDetails}>
-                                    <div style={styles.weatherDetail}>
-                                        <Sun size={12} />
-                                        {weather.condition}
-                                    </div>
-                                    <div style={styles.weatherDetail}>
-                                        <Droplets size={12} />
-                                        Humidity: {weather.humidity}%
+
+                                {/* Weather Widget */}
+                                <div style={styles.weatherCard}>
+                                    <h4 style={styles.weatherTitle}>
+                                        <Sun size={16} color="#f57c00" />
+                                        Weather
+                                    </h4>
+
+                                    <div style={styles.weatherDisplay}>
+                                        <div style={styles.weatherTemp}>{weather.temp}°C</div>
+                                        <div style={styles.weatherDetails}>
+                                            <div style={styles.weatherDetail}>
+                                                <Sun size={12} />
+                                                {weather.condition}
+                                            </div>
+                                            <div style={styles.weatherDetail}>
+                                                <Droplets size={12} />
+                                                Humidity: {weather.humidity}%
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </>                
+                )}
+
+                {tab === 'users' && <UsersReport />}
             </div>
-        </div>
+        </div >
     );
 };
 

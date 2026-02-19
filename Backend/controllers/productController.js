@@ -18,7 +18,7 @@ exports.upload = upload.single('image'); // Middleware for single file upload
 
 exports.addProduct = async (req, res) => {
     try {
-        const { name, price, mrp, discount, productTag, stock, description, category } = req.body;
+        const { name, price, mrp, discount, productTag, stock, lowStockThreshold, description, category } = req.body;
 
         // Validation
         if (discount < 0 || discount > 100) {
@@ -37,6 +37,7 @@ exports.addProduct = async (req, res) => {
             discount,
             productTag,
             stock,
+            lowStockThreshold: lowStockThreshold || 5,
             description,
             category,
             image
@@ -50,6 +51,16 @@ exports.addProduct = async (req, res) => {
 exports.getProducts = async (req, res) => {
     const products = await Product.find();
     res.json(products);
+};
+
+exports.getProductById = async (req, res) => {
+    try {
+        const product = await Product.findById(req.params.id);
+        if (!product) return res.status(404).json({ message: 'Product not found' });
+        res.json(product);
+    } catch (err) {
+        res.status(400).json({ message: 'Invalid product id' });
+    }
 };
 
 exports.updateProduct = async (req, res) => {

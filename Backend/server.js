@@ -17,8 +17,7 @@ app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/staff', require('./routes/staffRoutes'));
 app.use('/api/sales', require('./routes/salesRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
-
-app.use('/api/staff', require('./routes/staffdashboardRoutes')); // for dashboard/orders/sales
+app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 
 
 app.listen(5000, () => console.log("Server running"));

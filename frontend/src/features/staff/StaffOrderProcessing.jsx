@@ -62,13 +62,27 @@ const StaffOrderProcessing = () => {
         loadOrders();
     }, []);
 
+    // Helper to normalize old statuses to standard ones
+    const normalizeStatus = (status) => {
+        if (!status) return 'pending';
+        const lower = status.toLowerCase();
+        // Map old statuses to new standard
+        if (lower === 'placed' || lower === 'confirmed') return 'pending';
+        if (lower === 'shipped' || lower === 'delivered') return 'completed';
+        return lower; // Return as-is if already standard
+    };
+
     const calculateStats = (ordersData) => {
         const total = ordersData.length;
         const revenue = ordersData.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-        const pending = ordersData.filter(o => o.status === 'pending').length;
-        const processing = ordersData.filter(o => o.status === 'processing').length;
-        const completed = ordersData.filter(o => o.status === 'completed').length;
-        const cancelled = ordersData.filter(o => o.status === 'cancelled').length;
+        // Count orders with normalized statuses (handle old statuses)
+        const pending = ordersData.filter(o => {
+            const s = normalizeStatus(o.status);
+            return s === 'pending';
+        }).length;
+        const processing = ordersData.filter(o => normalizeStatus(o.status) === 'processing').length;
+        const completed = ordersData.filter(o => normalizeStatus(o.status) === 'completed').length;
+        const cancelled = ordersData.filter(o => normalizeStatus(o.status) === 'cancelled').length;
 
         setStats({
             totalOrders: total,
@@ -83,9 +97,12 @@ const StaffOrderProcessing = () => {
     const getFilteredOrders = () => {
         let filtered = [...orders];
 
-        // Status filter
+        // Status filter (normalize old statuses)
         if (filterStatus !== 'all') {
-            filtered = filtered.filter(order => order.status === filterStatus);
+            filtered = filtered.filter(order => {
+                const normalized = normalizeStatus(order.status);
+                return normalized === filterStatus;
+            });
         }
 
         // Search filter
@@ -139,18 +156,20 @@ const StaffOrderProcessing = () => {
     };
 
     const getStatusStyle = (status) => {
+        // Normalize old statuses to new standard
+        const normalizedStatus = normalizeStatus(status);
         const styles = {
-            'placed': { bg: '#e3f2fd', color: '#1976d2', text: 'Placed' },
             'pending': { bg: '#fff3e0', color: '#f57c00', text: 'Pending' },
             'processing': { bg: '#e8f5e8', color: '#2e7d32', text: 'Processing' },
             'completed': { bg: '#e8f5e9', color: '#2e7d32', text: 'Completed' },
             'cancelled': { bg: '#ffebee', color: '#d32f2f', text: 'Cancelled' }
         };
-        return styles[status] || { bg: '#f5f5f5', color: '#616161', text: status };
+        return styles[normalizedStatus] || { bg: '#f5f5f5', color: '#616161', text: normalizedStatus || status };
     };
 
     const getStatusIcon = (status) => {
-        switch(status) {
+        const normalized = normalizeStatus(status);
+        switch(normalized) {
             case 'pending': return <Clock size={12} />;
             case 'processing': return <RefreshCw size={12} />;
             case 'completed': return <CheckCircle size={12} />;
@@ -469,7 +488,7 @@ const StaffOrderProcessing = () => {
                                                 <button
                                                     style={styles.processBtn(order.status === 'completed' || order.status === 'cancelled')}
                                                     onClick={() => handleProcessOrder(order)}
-                                                    disabled={order.status === 'completed' || order.status === 'cancelled'}
+                                                    disabled={normalizeStatus(order.status) === 'completed' || normalizeStatus(order.status) === 'cancelled'}
                                                 >
                                                     Process
                                                 </button>
@@ -619,7 +638,7 @@ const StaffOrderProcessing = () => {
                             setShowDetailsModal(false);
                             setShowModal(true);
                         }}
-                        disabled={selectedOrder?.status === 'completed' || selectedOrder?.status === 'cancelled'}
+                        disabled={normalizeStatus(selectedOrder?.status) === 'completed' || normalizeStatus(selectedOrder?.status) === 'cancelled'}
                     >
                         Process Order
                     </Button>

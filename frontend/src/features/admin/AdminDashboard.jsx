@@ -5,6 +5,7 @@ import ProductManagement from './ProductManagement';
 import StaffManagement from './StaffManagement';
 import SalesReport from './SalesReport';
 import OrderManagement from './OrderManagement';
+import UsersReport from './UsersReport';
 
 const AdminDashboard = () => {
     const [tab, setTab] = useState('products');
@@ -357,6 +358,24 @@ const AdminDashboard = () => {
                             📦 Orders
                         </div>
                     </div>
+                    <div style={styles.navItem}>
+                        <div 
+                            style={styles.navLink(tab === 'users')}
+                            onClick={() => setTab('users')}
+                            onMouseOver={(e) => {
+                                if (tab !== 'users') {
+                                    e.currentTarget.style.backgroundColor = '#f0f0f0';
+                                }
+                            }}
+                            onMouseOut={(e) => {
+                                if (tab !== 'users') {
+                                    e.currentTarget.style.backgroundColor = 'transparent';
+                                }
+                            }}
+                        >
+                            👤 Users
+                        </div>
+                    </div>
                 </div>
 
                 {/* Content Area */}
@@ -365,6 +384,7 @@ const AdminDashboard = () => {
                     {tab === 'staff' && <StaffManagement />}
                     {tab === 'sales' && <SalesReport />}
                     {tab === 'orders' && <OrderManagement />}
+                    {tab === 'users' && <UsersReport />}
                 </div>
 
                 {/* Footer */}

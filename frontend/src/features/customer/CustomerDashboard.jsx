@@ -43,6 +43,15 @@ const CustomerDashboard = () => {
                                 <Button variant="primary" onClick={() => navigate('/customer/orders')}>View Orders</Button>
                             </Card.Body>
                         </Card>
+                        </Col>
+                    <Col md={4}>
+                        <Card className="shadow-sm">
+                            <Card.Body>
+                                <h5>My Profile</h5>
+                                <p>Update Information</p>
+                                <Button variant="primary" onClick={() => navigate('/customer/profile')}>View Profile</Button>
+                            </Card.Body>
+                        </Card>
                     </Col>
                 </Row>
             </Container>

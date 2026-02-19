@@ -1,12 +1,36 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const Cart = require('../models/Cart');
+const User = require('../models/User');
+const mongoose = require('mongoose');
+const { sendEmail } = require('../services/emailService');
+
+// Helper function to get updatedBy info (handles admin case)
+const getUpdatedByInfo = (user) => {
+    const userId = user.id || user._id;
+    // Check if it's the hardcoded admin (not a valid ObjectId)
+    if (userId === "admin-id" || !mongoose.Types.ObjectId.isValid(userId)) {
+        return {
+            updatedBy: null,
+            updatedByName: user.name || user.email || "Admin"
+        };
+    }
+    return {
+        updatedBy: userId,
+        updatedByName: user.name || user.email || null
+    };
+};
 
 // Customer places an order
 exports.createOrder = async (req, res) => {
     try {
+        // Ensure user is authenticated (defensive check - authMiddleware should have already verified)
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: "Please login to place an order" });
+        }
+
         const { items } = req.body;
-        const customerId = req.user.id; // req.user is set by auth middleware
+        const customerId = req.user.id;
 
         if (!items || items.length === 0) {
             return res.status(400).json({ message: "Cart is empty" });
@@ -30,12 +54,18 @@ exports.createOrder = async (req, res) => {
             await Product.findByIdAndUpdate(item.product, { $inc: { stock: -item.quantity } });
         }
 
-        // Create order
+        // Create order (status 'pending' so staff dashboard shows it; stock already deducted above)
+        const updatedByInfo = getUpdatedByInfo(req.user);
         const order = await Order.create({
             customer: customerId,
             items,
             totalAmount: total,
-            status: "placed"
+            status: "pending",
+            statusHistory: [{ 
+                status: "pending", 
+                updatedBy: updatedByInfo.updatedBy,
+                updatedByName: updatedByInfo.updatedByName
+            }]
         });
 
         // Clear customer cart after successful order
@@ -44,6 +74,13 @@ exports.createOrder = async (req, res) => {
             { $set: { items: [] } },
             { new: true }
         );
+
+        // Send order confirmation email
+        const user = await User.findById(customerId);
+        if (user && user.email) {
+            const html = `<h2>Order Confirmation</h2><p>Your order #${order._id} has been placed successfully.</p><p>Total: $${total}</p>`;
+            await sendEmail(user.email, 'Order Confirmation', html);
+        }
 
         res.json({ message: "Order placed successfully", order });
     } catch (err) {
@@ -58,8 +95,23 @@ exports.updateOrderStatus = async (req, res) => {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ message: "Order not found" });
 
-        order.status = req.body.status;
+        const newStatus = req.body.status;
+        const updatedByInfo = getUpdatedByInfo(req.user);
+        order.status = newStatus;
+        order.statusHistory = order.statusHistory || [];
+        order.statusHistory.push({ 
+            status: newStatus, 
+            updatedBy: updatedByInfo.updatedBy,
+            updatedByName: updatedByInfo.updatedByName
+        });
         await order.save();
+
+        // Send status update email
+        const user = await User.findById(order.customer);
+        if (user && user.email) {
+            const html = `<h2>Order Status Update</h2><p>Your order #${order._id} status has been updated to: ${newStatus}</p>`;
+            await sendEmail(user.email, 'Order Status Update', html);
+        }
 
         res.json({ message: "Order status updated", order });
     } catch (err) {

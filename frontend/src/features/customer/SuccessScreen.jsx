@@ -107,7 +107,7 @@ const SuccessScreen = () => {
     const styles = {
         container: {
             minHeight: '100vh',
-            background: 'linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%)',
+            background: 'linear-gradient(360deg, #f5f7fa 0%, #b3dbff 100%)',
             position: 'relative',
             overflow: 'hidden'
         },
