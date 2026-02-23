@@ -33,16 +33,16 @@ role-based access control, cart management, and order processing operations.
 
 ## Tech Stack
 **Frontend:**
-- React 18+ with React Router v7
-- Bootstrap 5 for UI
-- Lucide React for icons
-- Axios for HTTP client
+- React 18+ with React Router v7.
+- Bootstrap 5 for UI.
+- Lucide React for icons.
+- Axios for HTTP client.
 
 **Backend:**
-- Node.js with Express
-- MongoDB with Mongoose ODM
-- JWT authentication
-- RESTful API design
+- Node.js with Express.
+- MongoDB with Mongoose ODM.
+- JWT authentication.
+- RESTful API design.
 
 **Features:**
 - Atomic transactions with MongoDB
