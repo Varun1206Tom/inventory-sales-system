@@ -45,7 +45,7 @@ role-based access control, cart management, and order processing operations.
 - RESTful API design.
 
 **Features:**
-- Atomic transactions with MongoDB
-- Race condition prevention with optimistic locking
-- Role-based authorization middleware
-- Error handling and validation
+- Atomic transactions with MongoDB.
+- Race condition prevention with optimistic locking.
+- Role-based authorization middleware.
+- Error handling and validation.
