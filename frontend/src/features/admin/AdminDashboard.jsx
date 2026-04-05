@@ -201,6 +201,8 @@ const AdminDashboard = () => {
         sales: '₹45,678'
     };
 
+    console.log("Stats :", stats)
+
     return (
         <div>
             <AppNavbar />
